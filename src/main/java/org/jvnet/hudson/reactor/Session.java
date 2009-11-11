@@ -109,6 +109,11 @@ public class Session implements Iterable<Session.Node> {
             submitted = true;
             executor.execute(this);
         }
+
+        @Override
+        public String toString() {
+            return task.toString();
+        }
     }
 
 
@@ -141,6 +146,9 @@ public class Session implements Iterable<Session.Node> {
                 public void run() {
                     listener.onAttained(m);
                 }
+                public String toString() {
+                    return "Milestone:"+m.toString();
+                }
             }));
         return n;
     }
@@ -162,6 +170,10 @@ public class Session implements Iterable<Session.Node> {
                     listener.onTaskFailed(t,x);
                     throw new TunnelException(x);
                 }
+            }
+
+            public String toString() {
+                return "Task:"+t.getDisplayName();
             }
         });
         for (Milestone req : t.requires())
@@ -201,10 +213,8 @@ public class Session implements Iterable<Session.Node> {
         this.listener = listener;
         try {
             // start everything that can run
-            for (Node n : nodes) {
-                if (n.prerequisites.isEmpty())
-                    n.runIfPossible();
-            }
+            for (Node n : nodes)
+                n.runIfPossible();
 
             // block until everything is done
             while(pending>0) {
