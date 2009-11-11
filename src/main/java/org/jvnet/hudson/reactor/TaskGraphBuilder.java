@@ -37,6 +37,7 @@ public class TaskGraphBuilder extends TaskBuilder {
         t.requires(requiresForNextTask);
         t.attains(attainsForNextTask);
         requiresForNextTask.clear();
+        attainsForNextTask.clear();
         return t;
     }
 
@@ -113,6 +114,11 @@ public class TaskGraphBuilder extends TaskBuilder {
             executable.run(session);
         }
 
+        @Override
+        public String toString() {
+            return displayName;
+        }
+        
     //
     // mutators
     //
