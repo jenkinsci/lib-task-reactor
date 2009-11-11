@@ -7,7 +7,7 @@ import java.util.Collection;
  *
  * @author Kohsuke Kawaguchi
  */
-public interface Task {
+public interface Task extends Executable {
     /**
      * Indicates the milestones necessary before executing this.
      */
@@ -25,10 +25,4 @@ public interface Task {
      * Human readable description of this task. Used for progress report.
      */
     String getDisplayName();
-
-    /**
-     * Executes a task. Any exception thrown will abort the session.
-     * @param session
-     */
-    void run(Session session) throws Exception;
 }

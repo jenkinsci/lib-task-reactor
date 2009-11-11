@@ -3,7 +3,6 @@ package org.jvnet.hudson.reactor;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -157,7 +156,7 @@ public class Session implements Iterable<Session.Node> {
             public void run() {
                 listener.onTaskStarted(t);
                 try {
-                    t.run(Session.this);
+                    runTask(t);
                     listener.onTaskCompleted(t);
                 } catch (Throwable x) {
                     listener.onTaskFailed(t,x);
@@ -173,6 +172,11 @@ public class Session implements Iterable<Session.Node> {
 
         if (executor!=null)
             n.runIfPossible();
+    }
+
+    public void addAll(Iterable<? extends Task> tasks) {
+        for (Task task : tasks)
+            add(task);
     }
 
     /**
@@ -215,15 +219,11 @@ public class Session implements Iterable<Session.Node> {
         }
     }
 
-    public static Session fromTasks(final Collection<? extends Task> tasks) {
-        try {
-            return new Session(Collections.singleton(new TaskBuilder() {
-                public Iterable<? extends Task> discoverTasks(Session session) throws IOException {
-                    return tasks;
-                }
-            }));
-        } catch (IOException e) {
-            throw new AssertionError(e); // impossible
-        }
+    /**
+     * Can be overridden by the subtype to enclose the entire execution of the task.
+     */
+    protected void runTask(Task t) throws Exception {
+        t.run(this);
     }
+
 }

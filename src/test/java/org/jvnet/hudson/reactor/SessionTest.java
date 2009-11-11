@@ -175,12 +175,12 @@ public class SessionTest extends TestCase {
         void run(Session session, String id) throws Exception;
     }
 
-    private Session buildSession(String spec, final TestTask work) {
+    private Session buildSession(String spec, final TestTask work) throws Exception {
         Collection<TaskImpl> tasks = new ArrayList<TaskImpl>();
         for (String node : spec.split(" "))
             tasks.add(new TaskImpl(node,work));
 
-        return Session.fromTasks(tasks);
+        return new Session(TaskBuilder.fromTasks(tasks));
     }
 
     class TaskImpl implements Task {
