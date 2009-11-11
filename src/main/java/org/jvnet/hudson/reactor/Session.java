@@ -41,7 +41,7 @@ public class Session extends AbstractSet<Task> {
         return tasks.size();
     }
 
-    public void execute(Executor e) throws InterruptedException, InvocationTargetException {
+    public void execute(Executor e) throws InterruptedException, ReactorException {
         execute(e,SessionListener.NOOP);
     }
 
@@ -55,18 +55,18 @@ public class Session extends AbstractSet<Task> {
      *
      * @throws InterruptedException
      *      if this thread is interrupted while waiting for the execution of tasks to complete.
-     * @throws InvocationTargetException
+     * @throws ReactorException
      *      if one of the tasks failed by throwing an exception. The caller is responsible for canceling
      *      existing {@link Task}s that are in progress in {@link Executor}, if that's desired. 
      */
-    public void execute(final Executor e, final SessionListener listener) throws InterruptedException, InvocationTargetException {
+    public void execute(final Executor e, final SessionListener listener) throws InterruptedException, ReactorException {
         // make sure that scheduling of the tasks happens sequentially to avoid race condition
         final Object schedulingLock = new Object();
 
         // number of tasks pending execution
         final int[] pending = new int[1];
         // RuntimeException or Error that indicates a fatal failure in a task
-        final Throwable[] fatal = new Throwable[1];
+        final TunnelException[] fatal = new TunnelException[1];
 
         /**
          * A node in DAG.
@@ -112,7 +112,7 @@ public class Session extends AbstractSet<Task> {
             public void run() {
                 try {
                     task.run();
-                } catch(Throwable t) {
+                } catch(TunnelException t) {
                     fatal[0] = t;
                 } finally {
                     done = true;
@@ -163,12 +163,9 @@ public class Session extends AbstractSet<Task> {
                     try {
                         t.run();
                         listener.onTaskCompleted(t);
-                    } catch (RuntimeException x) {
+                    } catch (Throwable x) {
                         listener.onTaskFailed(t,x);
-                        throw x;
-                    } catch (Error x) {
-                        listener.onTaskFailed(t,x);
-                        throw x;
+                        throw new TunnelException(x);
                     }
                 }
             });
@@ -190,7 +187,7 @@ public class Session extends AbstractSet<Task> {
             while(pending[0]>0) {
                 schedulingLock.wait();
                 if (fatal[0]!=null)
-                    throw new InvocationTargetException(fatal[0]);
+                    throw new ReactorException(fatal[0].getCause());
             }
         }
     }

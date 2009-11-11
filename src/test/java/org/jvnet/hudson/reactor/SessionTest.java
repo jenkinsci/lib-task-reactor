@@ -1,18 +1,17 @@
 package org.jvnet.hudson.reactor;
 
 import junit.framework.TestCase;
+import org.objectweb.carol.cmi.test.TeeWriter;
 
-import java.util.concurrent.Executors;
-import java.util.Collection;
-import java.util.Arrays;
-import java.util.ArrayList;
-import java.util.Collections;
+import javax.naming.NamingException;
+import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.io.OutputStreamWriter;
-import java.lang.reflect.InvocationTargetException;
-
-import org.objectweb.carol.cmi.test.TeeWriter;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.concurrent.Executors;
 
 /**
  * @author Kohsuke Kawaguchi
@@ -34,7 +33,7 @@ public class SessionTest extends TestCase {
         assertEquals("Started t1\nEnded t1\nAttained m1\nStarted t2\nEnded t2\nAttained m2\nStarted t3\nEnded t3\n", sw);
     }
 
-    private String execute(Session s) throws InterruptedException, InvocationTargetException {
+    private String execute(Session s) throws Exception {
         StringWriter sw = new StringWriter();
         System.out.println("----");
         final PrintWriter w = new PrintWriter(new TeeWriter(sw,new OutputStreamWriter(System.out)),true);
@@ -59,16 +58,6 @@ public class SessionTest extends TestCase {
         return sw.toString();
     }
 
-    @Initializer(attains="foundation",displayName="1")
-    public static void init1() {
-    }
-    @Initializer(requires="foundation",attains="roof",displayName="2")
-    public static void init2() {
-    }
-    @Initializer(requires="roof",displayName="3")
-    public static void init3() {
-    }
-
     /**
      * Makes sure tasks can be executed in parallel.
      */
@@ -87,6 +76,23 @@ public class SessionTest extends TestCase {
                 latch.run(id);
             }
         }));
+    }
+
+    /**
+     * Is the exception properly forwarded?
+     */
+    public void testFailure() throws Exception {
+        final Exception[] e = new Exception[1];
+        try {
+            execute(buildSession("->t1->", new TestTask() {
+                public void run(String id) throws Exception {
+                    throw e[0]=new NamingException("Yep");
+                }
+            }));
+            fail();
+        } catch (ReactorException x) {
+            assertSame(e[0],x.getCause());
+        }
     }
 
     /**
@@ -144,12 +150,8 @@ public class SessionTest extends TestCase {
                 return id;
             }
 
-            public void run() {
-                try {
-                    work.run(id);
-                } catch (Exception e) {
-                    throw new Error(e);
-                }
+            public void run() throws Exception {
+                work.run(id);
             }
         }
 

@@ -27,7 +27,7 @@ public interface SessionListener {
      * Notifies that the execution of the task have failed with an exception.
      *
      * @param err
-     *      Either {@link Error} or {@link RuntimeException}.
+     *      Either {@link Error} or {@link Exception}.
      */
     void onTaskFailed(Task t, Throwable err);
 
