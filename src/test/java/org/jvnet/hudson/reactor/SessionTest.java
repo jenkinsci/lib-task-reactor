@@ -11,6 +11,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
+import java.util.AbstractList;
 import java.util.concurrent.Executors;
 
 /**
@@ -51,7 +53,7 @@ public class SessionTest extends TestCase {
                 w.println("Failed "+t.getDisplayName()+" with "+err);
             }
 
-            public synchronized void onAttained(Object milestone) {
+            public synchronized void onAttained(Milestone milestone) {
                 w.println("Attained "+milestone);
             }
         });
@@ -127,22 +129,29 @@ public class SessionTest extends TestCase {
     private Session buildSession(String spec, final TestTask work) {
         class TaskImpl implements Task {
             final String id;
-            final Collection<String> requires;
-            final Collection<String> attains;
+            final Collection<Milestone> requires;
+            final Collection<Milestone> attains;
 
             TaskImpl(String id) {
                 String[] tokens = id.split("->");
                 this.id = tokens[1];
                 // tricky handling necessary due to inconsistency in how split works
-                this.requires = tokens[0].length()==0 ? Collections.<String>emptyList() : Arrays.asList(tokens[0].split(","));
-                this.attains = tokens.length<3 ? Collections.<String>emptyList() : Arrays.asList(tokens[2].split(","));
+                this.requires = adapt(tokens[0].length()==0 ? Collections.<String>emptyList() : Arrays.asList(tokens[0].split(",")));
+                this.attains = adapt(tokens.length<3 ? Collections.<String>emptyList() : Arrays.asList(tokens[2].split(",")));
             }
 
-            public Collection<?> requires() {
+            private Collection<Milestone> adapt(List<String> strings) {
+                List<Milestone> r = new ArrayList<Milestone>();
+                for (String s : strings)
+                    r.add(new MilestoneImpl(s));
+                return r;
+            }
+
+            public Collection<Milestone> requires() {
                 return requires;
             }
 
-            public Collection<?> attains() {
+            public Collection<Milestone> attains() {
                 return attains;
             }
 
@@ -160,5 +169,28 @@ public class SessionTest extends TestCase {
             tasks.add(new TaskImpl(node));
 
         return Session.fromTasks(tasks);
+    }
+
+    private static class MilestoneImpl implements Milestone {
+        private final String id;
+
+        private MilestoneImpl(String id) {
+            this.id = id;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+
+            MilestoneImpl milestone = (MilestoneImpl) o;
+            return id.equals(milestone.id);
+
+        }
+
+        @Override
+        public int hashCode() {
+            return id.hashCode();
+        }
     }
 }

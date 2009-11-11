@@ -11,7 +11,7 @@ public interface Task {
     /**
      * Indicates the milestones necessary before executing this.
      */
-    Collection<?> requires();
+    Collection<? extends Milestone> requires();
 
     /**
      * Indicates the milestones that this initializer contributes.
@@ -19,7 +19,7 @@ public interface Task {
      * A milestone is considered attained if all the initializers that attains the given milestone
      * completes. So it works as a kind of join.
      */
-    Collection<?> attains();
+    Collection<? extends Milestone> attains();
 
     /**
      * Human readable description of this task. Used for progress report.

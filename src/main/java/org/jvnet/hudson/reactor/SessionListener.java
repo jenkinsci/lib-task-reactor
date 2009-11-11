@@ -34,7 +34,7 @@ public interface SessionListener {
     /**
      * Indicates that the following milestone was attained.
      */
-    void onAttained(Object milestone);
+    void onAttained(Milestone milestone);
 
     public static final SessionListener NOOP = new SessionListener() {
         public void onTaskStarted(Task t) {
@@ -43,7 +43,7 @@ public interface SessionListener {
         }
         public void onTaskFailed(Task t, Throwable err) {
         }
-        public void onAttained(Object milestone) {
+        public void onAttained(Milestone milestone) {
         }
     };
 }

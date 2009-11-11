@@ -137,14 +137,14 @@ public class Session extends AbstractSet<Task> {
             }
         }
 
-        // checkpoints are union of goals
-        Set<Object> milestones = new HashSet<Object>();
+        // build milestones
+        Set<Milestone> milestones = new HashSet<Milestone>();
         for (Task t : tasks) {
             milestones.addAll(t.attains());
             milestones.addAll(t.requires());
         }
-        Map<Object,Node> checkpoints = new HashMap<Object,Node>();
-        for (final Object milestone : milestones) {
+        Map<Milestone,Node> checkpoints = new HashMap<Milestone,Node>();
+        for (final Milestone milestone : milestones) {
             checkpoints.put(milestone,new Node(new Runnable() {
                 public void run() {
                     listener.onAttained(milestone);
@@ -168,9 +168,9 @@ public class Session extends AbstractSet<Task> {
                     }
                 }
             });
-            for (Object req : t.requires())
+            for (Milestone req : t.requires())
                 n.addPrerequisite(checkpoints.get(req));
-            for (Object a : t.attains())
+            for (Milestone a : t.attains())
                 checkpoints.get(a).addPrerequisite(n);
             dag.add(n);
         }
