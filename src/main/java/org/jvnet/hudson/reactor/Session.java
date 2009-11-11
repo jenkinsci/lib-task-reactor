@@ -1,17 +1,16 @@
 package org.jvnet.hudson.reactor;
 
+import java.io.IOException;
+import java.util.AbstractSet;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
-import java.util.Arrays;
-import java.util.AbstractSet;
-import java.util.Iterator;
 import java.util.concurrent.Executor;
-import java.lang.reflect.InvocationTargetException;
-import java.io.IOException;
 
 /**
  * Executes a set of {@link Task}s that dependend on each other.

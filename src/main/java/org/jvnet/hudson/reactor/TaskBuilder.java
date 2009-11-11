@@ -1,7 +1,7 @@
 package org.jvnet.hudson.reactor;
 
-import java.util.Collection;
 import java.io.IOException;
+import java.util.Collection;
 
 /**
  * @author Kohsuke Kawaguchi
