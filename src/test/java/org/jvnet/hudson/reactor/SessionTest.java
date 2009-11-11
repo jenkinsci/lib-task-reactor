@@ -146,6 +146,15 @@ public class SessionTest extends TestCase {
                 "Ended t4\n", result);
     }
 
+    public void testDanglingMilestone() throws Exception {
+        Session s = buildSession("m1->t1->m2",new TestTask() {
+            public void run(Session session, String id) throws Exception {
+            }
+        });
+        String result = execute(s);
+        assertEquals("Attained m1\nStarted t1\nEnded t1\nAttained m2\n",result);
+    }
+
     /**
      * Creates {@link TestTask} that waits for multiple tasks to be blocked together.
      */

@@ -77,7 +77,7 @@ public class Session implements Iterable<Session.Node> {
          * Can this node be executed?
          */
         private boolean canRun() {
-            if (submitted)  return false;
+            if (submitted || executor==null)  return false;
             for (Node n : prerequisites)
                 if (!n.done)        return false;
             return true;
@@ -141,7 +141,7 @@ public class Session implements Iterable<Session.Node> {
 
     private synchronized Node milestone(final Milestone m) {
         Node n = milestones.get(m);
-        if (n==null)
+        if (n==null) {
             milestones.put(m,n=new Node(new Runnable() {
                 public void run() {
                     listener.onAttained(m);
@@ -150,6 +150,9 @@ public class Session implements Iterable<Session.Node> {
                     return "Milestone:"+m.toString();
                 }
             }));
+            nodes.add(n);
+            n.runIfPossible();
+        }
         return n;
     }
 
@@ -181,9 +184,7 @@ public class Session implements Iterable<Session.Node> {
         for (Milestone a : t.attains())
             milestone(a).addPrerequisite(n);
         nodes.add(n);
-
-        if (executor!=null)
-            n.runIfPossible();
+        n.runIfPossible();
     }
 
     public void addAll(Iterable<? extends Task> tasks) {
