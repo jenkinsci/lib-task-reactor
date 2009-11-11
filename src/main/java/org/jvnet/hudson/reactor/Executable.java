@@ -8,15 +8,15 @@ package org.jvnet.hudson.reactor;
 public interface Executable {
     /**
      * Executes a task. Any exception thrown will abort the session.
-     * @param session
+     * @param reactor
      */
-    void run(Session session) throws Exception;
+    void run(Reactor reactor) throws Exception;
 
     /**
      * No-op implementation.
      */
     public static final Executable NOOP = new Executable() {
-        public void run(Session session) throws Exception {
+        public void run(Reactor reactor) throws Exception {
         }
     };
 }

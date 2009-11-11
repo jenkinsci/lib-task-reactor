@@ -21,7 +21,7 @@ import java.util.concurrent.Executor;
  *
  * @author Kohsuke Kawaguchi
  */
-public class Session implements Iterable<Session.Node> {
+public class Reactor implements Iterable<Reactor.Node> {
     /**
      * {@link Node}s created from {@link Task}.
      */
@@ -44,7 +44,7 @@ public class Session implements Iterable<Session.Node> {
 
     private Executor executor;
 
-    private SessionListener listener;
+    private ReactorListener listener;
 
     private boolean executed = false;
 
@@ -99,13 +99,13 @@ public class Session implements Iterable<Session.Node> {
             }
 
             // trigger downstream
-            synchronized (Session.this) {
+            synchronized (Reactor.this) {
                 if (fatal==null) {
                     for (Node n : downstream)
                         n.runIfPossible();
                 }
                 pending--;
-                Session.this.notify();
+                Reactor.this.notify();
             }
         }
 
@@ -123,13 +123,13 @@ public class Session implements Iterable<Session.Node> {
     }
 
 
-    public Session(Collection<? extends TaskBuilder> builders) throws IOException {
+    public Reactor(Collection<? extends TaskBuilder> builders) throws IOException {
         for (TaskBuilder b : builders)
             for (Task t :b.discoverTasks(this))
                 add(t);
     }
 
-    public Session(TaskBuilder... builders) throws IOException {
+    public Reactor(TaskBuilder... builders) throws IOException {
         this(Arrays.asList(builders));
     }
 
@@ -142,7 +142,7 @@ public class Session implements Iterable<Session.Node> {
     }
 
     public void execute(Executor e) throws InterruptedException, ReactorException {
-        execute(e,SessionListener.NOOP);
+        execute(e, ReactorListener.NOOP);
     }
 
     private synchronized Node milestone(final Milestone m) {
@@ -224,7 +224,7 @@ public class Session implements Iterable<Session.Node> {
      *      if one of the tasks failed by throwing an exception. The caller is responsible for canceling
      *      existing {@link Task}s that are in progress in {@link Executor}, if that's desired. 
      */
-    public synchronized void execute(final Executor e, final SessionListener listener) throws InterruptedException, ReactorException {
+    public synchronized void execute(final Executor e, final ReactorListener listener) throws InterruptedException, ReactorException {
         if (executed)   throw new IllegalStateException("This session is already executed");
         executed = true;
 

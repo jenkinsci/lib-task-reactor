@@ -19,7 +19,7 @@ public class TaskGraphBuilder extends TaskBuilder {
     private final List<Milestone> requiresForNextTask = new ArrayList<Milestone>();
     private final List<Milestone> attainsForNextTask = new ArrayList<Milestone>();
 
-    public Iterable<? extends Task> discoverTasks(Session session) throws IOException {
+    public Iterable<? extends Task> discoverTasks(Reactor reactor) throws IOException {
         return Collections.unmodifiableSet(tasks);
     }
 
@@ -110,8 +110,8 @@ public class TaskGraphBuilder extends TaskBuilder {
             return displayName;
         }
 
-        public void run(Session session) throws Exception {
-            executable.run(session);
+        public void run(Reactor reactor) throws Exception {
+            executable.run(reactor);
         }
 
         @Override

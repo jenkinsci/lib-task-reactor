@@ -3,14 +3,14 @@ package org.jvnet.hudson.reactor;
 import java.util.concurrent.Executor;
 
 /**
- * Receives callback during the {@link Session#execute(Executor, SessionListener)}.
+ * Receives callback during the {@link Reactor#execute(Executor, ReactorListener)}.
  *
  * The callback happens by using the threads of {@link Executor}, which means these callbacks
  * can occur concurrently. The callee is responsible for synchronization, if that's desired.
  *
  * @author Kohsuke Kawaguchi
  */
-public interface SessionListener {
+public interface ReactorListener {
     /**
      * Notifies that the execution of the task is about to start.
      */
@@ -36,7 +36,7 @@ public interface SessionListener {
      */
     void onAttained(Milestone milestone);
 
-    public static final SessionListener NOOP = new SessionListener() {
+    public static final ReactorListener NOOP = new ReactorListener() {
         public void onTaskStarted(Task t) {
         }
         public void onTaskCompleted(Task t) {
