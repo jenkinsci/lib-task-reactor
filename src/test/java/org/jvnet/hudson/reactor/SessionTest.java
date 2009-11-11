@@ -12,7 +12,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.AbstractList;
 import java.util.concurrent.Executors;
 
 /**
@@ -24,7 +23,7 @@ public class SessionTest extends TestCase {
      */
     public void testSequentialOrdering() throws Exception {
         Session s = buildSession("->t1->m1 m1->t2->m2 m2->t3->",new TestTask() {
-            public void run(String id) throws Exception {
+            public void run(Session session, String id) throws Exception {
                 System.out.println(id);
             }
         });
@@ -73,9 +72,9 @@ public class SessionTest extends TestCase {
     public void testConcurrentExecution2() throws Exception {
         execute(buildSession("->t1->m m->t2-> m->t3->", new TestTask() {
             TestTask latch = createLatch(2);
-            public void run(String id) throws Exception {
+            public void run(Session session, String id) throws Exception {
                 if (id.equals("t1"))    return;
-                latch.run(id);
+                latch.run(session, id);
             }
         }));
     }
@@ -87,7 +86,7 @@ public class SessionTest extends TestCase {
         final Exception[] e = new Exception[1];
         try {
             execute(buildSession("->t1->", new TestTask() {
-                public void run(String id) throws Exception {
+                public void run(Session session, String id) throws Exception {
                     throw e[0]=new NamingException("Yep");
                 }
             }));
@@ -95,6 +94,56 @@ public class SessionTest extends TestCase {
         } catch (ReactorException x) {
             assertSame(e[0],x.getCause());
         }
+    }
+
+    /**
+     * Dynamically add a new task that can run immediately.
+     */
+    public void testDynamicTask() throws Exception {
+        final Session s = buildSession("->t1->m1 m1->t2->", new TestTask() {
+            public void run(Session session, String id) throws Exception {
+                if (id.equals("t2")) {
+                    // should start running immediately because it's prerequisite is already met.
+                    session.add(new TaskImpl("m1->t3->",this));
+                }
+            }
+        });
+        assertEquals(2,s.size());
+        String result = execute(s);
+
+        // one more task added  during execution
+        assertEquals(3,s.size());
+        assertEquals("Started t1\nEnded t1\nAttained m1\nStarted t2\nEnded t2\nStarted t3\nEnded t3\n", result);
+    }
+
+    /**
+     * Dynamically add a new task that can be only run later
+     */
+    public void testDynamicTask2() throws Exception {
+        final Session s = buildSession("->t1->m1 m1->t2->m2 m2->t3->m3", new TestTask() {
+            public void run(Session session, String id) throws Exception {
+                if (id.equals("t2")) {
+                    // should block until m3 is attained
+                    session.add(new TaskImpl("m3->t4->",this));
+                }
+            }
+        });
+        assertEquals(3,s.size());
+        String result = execute(s);
+
+        // one more task added  during execution
+        assertEquals(4,s.size());
+        assertEquals("Started t1\n" +
+                "Ended t1\n" +
+                "Attained m1\n" +
+                "Started t2\n" +
+                "Ended t2\n" +
+                "Attained m2\n" +
+                "Started t3\n" +
+                "Ended t3\n" +
+                "Attained m3\n" +
+                "Started t4\n" +
+                "Ended t4\n", result);
     }
 
     /**
@@ -106,7 +155,7 @@ public class SessionTest extends TestCase {
             int pending = 0;
             boolean go = false;
 
-            public void run(String id) throws InterruptedException {
+            public void run(Session session, String id) throws InterruptedException {
                 synchronized (lock) {
                     pending++;
                     if (pending==threshold) {
@@ -123,52 +172,54 @@ public class SessionTest extends TestCase {
     }
 
     interface TestTask {
-        void run(String id) throws Exception;
+        void run(Session session, String id) throws Exception;
     }
 
     private Session buildSession(String spec, final TestTask work) {
-        class TaskImpl implements Task {
-            final String id;
-            final Collection<Milestone> requires;
-            final Collection<Milestone> attains;
-
-            TaskImpl(String id) {
-                String[] tokens = id.split("->");
-                this.id = tokens[1];
-                // tricky handling necessary due to inconsistency in how split works
-                this.requires = adapt(tokens[0].length()==0 ? Collections.<String>emptyList() : Arrays.asList(tokens[0].split(",")));
-                this.attains = adapt(tokens.length<3 ? Collections.<String>emptyList() : Arrays.asList(tokens[2].split(",")));
-            }
-
-            private Collection<Milestone> adapt(List<String> strings) {
-                List<Milestone> r = new ArrayList<Milestone>();
-                for (String s : strings)
-                    r.add(new MilestoneImpl(s));
-                return r;
-            }
-
-            public Collection<Milestone> requires() {
-                return requires;
-            }
-
-            public Collection<Milestone> attains() {
-                return attains;
-            }
-
-            public String getDisplayName() {
-                return id;
-            }
-
-            public void run() throws Exception {
-                work.run(id);
-            }
-        }
-
         Collection<TaskImpl> tasks = new ArrayList<TaskImpl>();
         for (String node : spec.split(" "))
-            tasks.add(new TaskImpl(node));
+            tasks.add(new TaskImpl(node,work));
 
         return Session.fromTasks(tasks);
+    }
+
+    class TaskImpl implements Task {
+        final String id;
+        final Collection<Milestone> requires;
+        final Collection<Milestone> attains;
+        final TestTask work;
+
+        TaskImpl(String id, TestTask work) {
+            String[] tokens = id.split("->");
+            this.id = tokens[1];
+            // tricky handling necessary due to inconsistency in how split works
+            this.requires = adapt(tokens[0].length()==0 ? Collections.<String>emptyList() : Arrays.asList(tokens[0].split(",")));
+            this.attains = adapt(tokens.length<3 ? Collections.<String>emptyList() : Arrays.asList(tokens[2].split(",")));
+            this.work = work;
+        }
+
+        private Collection<Milestone> adapt(List<String> strings) {
+            List<Milestone> r = new ArrayList<Milestone>();
+            for (String s : strings)
+                r.add(new MilestoneImpl(s));
+            return r;
+        }
+
+        public Collection<Milestone> requires() {
+            return requires;
+        }
+
+        public Collection<Milestone> attains() {
+            return attains;
+        }
+
+        public String getDisplayName() {
+            return id;
+        }
+
+        public void run(Session session) throws Exception {
+            work.run(session, id);
+        }
     }
 
     private static class MilestoneImpl implements Milestone {
@@ -191,6 +242,11 @@ public class SessionTest extends TestCase {
         @Override
         public int hashCode() {
             return id.hashCode();
+        }
+
+        @Override
+        public String toString() {
+            return id;
         }
     }
 }

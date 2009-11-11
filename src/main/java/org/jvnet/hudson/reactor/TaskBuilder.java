@@ -7,5 +7,5 @@ import java.util.Collection;
  * @author Kohsuke Kawaguchi
  */
 public abstract class TaskBuilder {
-    public abstract void discoverTasks(Session session, Collection<Task> result) throws IOException;
+    public abstract Iterable<? extends Task> discoverTasks(Session session) throws IOException;
 }

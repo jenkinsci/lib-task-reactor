@@ -28,6 +28,7 @@ public interface Task {
 
     /**
      * Executes a task. Any exception thrown will abort the session.
+     * @param session
      */
-    void run() throws Exception;
+    void run(Session session) throws Exception;
 }

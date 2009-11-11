@@ -1,7 +1,6 @@
 package org.jvnet.hudson.reactor;
 
 import java.io.IOException;
-import java.util.AbstractSet;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -20,28 +19,160 @@ import java.util.concurrent.Executor;
  *
  * @author Kohsuke Kawaguchi
  */
-public class Session extends AbstractSet<Task> {
-    private final Set<Task> tasks = new HashSet<Task>();
+public class Session implements Iterable<Session.Node> {
+    private final Set<Node> nodes = new HashSet<Node>();
+
+    /**
+     * Number of tasks pending execution
+     */
+    private int pending = 0;
+
+    /**
+     * RuntimeException or Error that indicates a fatal failure in a task
+     */
+    private TunnelException fatal;
+
+    /**
+     * Milestones as nodes in DAG. Guarded by 'this'.
+     */
+    private final Map<Milestone,Node> milestones = new HashMap<Milestone,Node>();
+
+    private Executor executor;
+
+    private SessionListener listener;
+
+    private boolean executed = false;
+
+    /**
+     * A node in DAG.
+     */
+    final class Node implements Runnable {
+        /**
+         * All of them have to run before this task can be executed.
+         */
+        private final Set<Node> prerequisites = new HashSet<Node>();
+
+        /**
+         * What to run
+         */
+        private final Runnable task;
+
+        /**
+         * These nodes have this node in {@link #prerequisites}.
+         */
+        private final Set<Node> downstream = new HashSet<Node>();
+
+        private boolean submitted;
+        private boolean done;
+
+        private Node(Runnable task) {
+            this.task = task;
+        }
+
+        private void addPrerequisite(Node n) {
+            prerequisites.add(n);
+            n.downstream.add(this);
+        }
+
+        /**
+         * Can this node be executed?
+         */
+        private boolean canRun() {
+            if (submitted)  return false;
+            for (Node n : prerequisites)
+                if (!n.done)        return false;
+            return true;
+        }
+
+        public void run() {
+            try {
+                task.run();
+            } catch(TunnelException t) {
+                fatal = t;
+            } finally {
+                done = true;
+            }
+
+            // trigger downstream
+            synchronized (Session.this) {
+                if (fatal==null) {
+                    for (Node n : downstream)
+                        n.runIfPossible();
+                }
+                pending--;
+                Session.this.notify();
+            }
+        }
+
+        public void runIfPossible() {
+            if (!canRun())  return;
+            pending++;
+            submitted = true;
+            executor.execute(this);
+        }
+    }
+
 
     public Session(Collection<? extends TaskBuilder> builders) throws IOException {
         for (TaskBuilder b : builders)
-            b.discoverTasks(this,tasks);
+            for (Task t :b.discoverTasks(this))
+                add(t);
     }
 
     public Session(TaskBuilder... builders) throws IOException {
         this(Arrays.asList(builders));
     }
 
-    public Iterator<Task> iterator() {
-        return tasks.iterator();
+    public Iterator<Node> iterator() {
+        return nodes.iterator();
     }
 
     public int size() {
-        return tasks.size();
+        return nodes.size();
     }
 
     public void execute(Executor e) throws InterruptedException, ReactorException {
         execute(e,SessionListener.NOOP);
+    }
+
+    private synchronized Node milestone(final Milestone m) {
+        Node n = milestones.get(m);
+        if (n==null)
+            milestones.put(m,n=new Node(new Runnable() {
+                public void run() {
+                    listener.onAttained(m);
+                }
+            }));
+        return n;
+    }
+
+    /**
+     * Adds a new {@link Task} to the reactor.
+     *
+     * <p>
+     * This can be even invoked during execution.
+     */
+    public synchronized void add(final Task t) {
+        Node n = new Node(new Runnable() {
+            public void run() {
+                listener.onTaskStarted(t);
+                try {
+                    t.run(Session.this);
+                    listener.onTaskCompleted(t);
+                } catch (Throwable x) {
+                    listener.onTaskFailed(t,x);
+                    throw new TunnelException(x);
+                }
+            }
+        });
+        for (Milestone req : t.requires())
+            n.addPrerequisite(milestone(req));
+        for (Milestone a : t.attains())
+            milestone(a).addPrerequisite(n);
+        nodes.add(n);
+
+        if (executor!=null)
+            n.runIfPossible();
     }
 
     /**
@@ -58,144 +189,37 @@ public class Session extends AbstractSet<Task> {
      *      if one of the tasks failed by throwing an exception. The caller is responsible for canceling
      *      existing {@link Task}s that are in progress in {@link Executor}, if that's desired. 
      */
-    public void execute(final Executor e, final SessionListener listener) throws InterruptedException, ReactorException {
-        // make sure that scheduling of the tasks happens sequentially to avoid race condition
-        final Object schedulingLock = new Object();
+    public synchronized void execute(final Executor e, final SessionListener listener) throws InterruptedException, ReactorException {
+        if (executed)   throw new IllegalStateException("This session is already executed");
+        executed = true;
 
-        // number of tasks pending execution
-        final int[] pending = new int[1];
-        // RuntimeException or Error that indicates a fatal failure in a task
-        final TunnelException[] fatal = new TunnelException[1];
-
-        /**
-         * A node in DAG.
-         */
-        final class Node implements Runnable {
-            /**
-             * All of them have to run before this task can be executed.
-             */
-            private final Set<Node> prerequisites = new HashSet<Node>();
-
-            /**
-             * What to run
-             */
-            private final Runnable task;
-
-            /**
-             * These nodes have this node in {@link #prerequisites}.
-             */
-            private final Set<Node> downstream = new HashSet<Node>();
-
-            private boolean submitted;
-            private boolean done;
-
-            private Node(Runnable task) {
-                this.task = task;
-            }
-
-            private void addPrerequisite(Node n) {
-                prerequisites.add(n);
-                n.downstream.add(this);
-            }
-
-            /**
-             * Can this node be executed?
-             */
-            private boolean canRun() {
-                if (submitted)  return false;
-                for (Node n : prerequisites)
-                    if (!n.done)        return false;
-                return true;
-            }
-
-            public void run() {
-                try {
-                    task.run();
-                } catch(TunnelException t) {
-                    fatal[0] = t;
-                } finally {
-                    done = true;
-                }
-
-                // trigger downstream
-                synchronized (schedulingLock) {
-                    if (fatal[0]==null) {
-                        for (Node n : downstream) {
-                            if (n.canRun())
-                                n.submit();
-                        }
-                    }
-                    pending[0]--;
-                    schedulingLock.notify();
-                }
-            }
-
-            public void submit() {
-                pending[0]++;
-                submitted = true;
-                e.execute(this);
-            }
-        }
-
-        // build milestones
-        Set<Milestone> milestones = new HashSet<Milestone>();
-        for (Task t : tasks) {
-            milestones.addAll(t.attains());
-            milestones.addAll(t.requires());
-        }
-        Map<Milestone,Node> checkpoints = new HashMap<Milestone,Node>();
-        for (final Milestone milestone : milestones) {
-            checkpoints.put(milestone,new Node(new Runnable() {
-                public void run() {
-                    listener.onAttained(milestone);
-                }
-            }));
-
-        }
-
-        // build DAG
-        Set<Node> dag = new HashSet<Node>(checkpoints.values());
-        for (final Task t : tasks) {
-            Node n = new Node(new Runnable() {
-                public void run() {
-                    listener.onTaskStarted(t);
-                    try {
-                        t.run();
-                        listener.onTaskCompleted(t);
-                    } catch (Throwable x) {
-                        listener.onTaskFailed(t,x);
-                        throw new TunnelException(x);
-                    }
-                }
-            });
-            for (Milestone req : t.requires())
-                n.addPrerequisite(checkpoints.get(req));
-            for (Milestone a : t.attains())
-                checkpoints.get(a).addPrerequisite(n);
-            dag.add(n);
-        }
-
-        // kick of initialization
-        synchronized (schedulingLock) {
-            for (Node n : dag) {
+        this.executor = e;
+        this.listener = listener;
+        try {
+            // start everything that can run
+            for (Node n : nodes) {
                 if (n.prerequisites.isEmpty())
-                    n.submit();
+                    n.runIfPossible();
             }
 
             // block until everything is done
-            while(pending[0]>0) {
-                schedulingLock.wait();
-                if (fatal[0]!=null)
-                    throw new ReactorException(fatal[0].getCause());
+            while(pending>0) {
+                wait();
+                if (fatal!=null)
+                    throw new ReactorException(fatal.getCause());
             }
+        } finally {
+            // avoid memory leak
+            this.executor = null;
+            this.listener = null;
         }
     }
 
     public static Session fromTasks(final Collection<? extends Task> tasks) {
         try {
             return new Session(Collections.singleton(new TaskBuilder() {
-                public void discoverTasks(Session session, Collection<Task> result) {
-                    result.addAll(tasks);
+                public Iterable<? extends Task> discoverTasks(Session session) throws IOException {
+                    return tasks;
                 }
             }));
         } catch (IOException e) {
