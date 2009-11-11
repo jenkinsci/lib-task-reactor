@@ -19,7 +19,10 @@ import java.util.concurrent.Executor;
  * @author Kohsuke Kawaguchi
  */
 public class Session implements Iterable<Session.Node> {
-    private final Set<Node> nodes = new HashSet<Node>();
+    /**
+     * {@link Node}s created from {@link Task}.
+     */
+    private final Set<Node> tasks = new HashSet<Node>();
 
     /**
      * Number of tasks pending execution
@@ -128,11 +131,11 @@ public class Session implements Iterable<Session.Node> {
     }
 
     public Iterator<Node> iterator() {
-        return nodes.iterator();
+        return tasks.iterator();
     }
 
     public int size() {
-        return nodes.size();
+        return tasks.size();
     }
 
     public void execute(Executor e) throws InterruptedException, ReactorException {
@@ -150,7 +153,6 @@ public class Session implements Iterable<Session.Node> {
                     return "Milestone:"+m.toString();
                 }
             }));
-            nodes.add(n);
             n.runIfPossible();
         }
         return n;
@@ -183,7 +185,7 @@ public class Session implements Iterable<Session.Node> {
             n.addPrerequisite(milestone(req));
         for (Milestone a : t.attains())
             milestone(a).addPrerequisite(n);
-        nodes.add(n);
+        tasks.add(n);
         n.runIfPossible();
     }
 
@@ -214,7 +216,9 @@ public class Session implements Iterable<Session.Node> {
         this.listener = listener;
         try {
             // start everything that can run
-            for (Node n : nodes)
+            for (Node n : tasks)
+                n.runIfPossible();
+            for (Node n : milestones.values())
                 n.runIfPossible();
 
             // block until everything is done
