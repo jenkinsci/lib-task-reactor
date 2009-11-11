@@ -8,6 +8,9 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.concurrent.Executor;
 
 /**
@@ -153,7 +156,6 @@ public class Session implements Iterable<Session.Node> {
                     return "Milestone:"+m.toString();
                 }
             }));
-            n.runIfPossible();
         }
         return n;
     }
@@ -164,34 +166,48 @@ public class Session implements Iterable<Session.Node> {
      * <p>
      * This can be even invoked during execution.
      */
-    public synchronized void add(final Task t) {
-        Node n = new Node(new Runnable() {
-            public void run() {
-                listener.onTaskStarted(t);
-                try {
-                    runTask(t);
-                    listener.onTaskCompleted(t);
-                } catch (Throwable x) {
-                    listener.onTaskFailed(t,x);
-                    throw new TunnelException(x);
-                }
-            }
-
-            public String toString() {
-                return "Task:"+t.getDisplayName();
-            }
-        });
-        for (Milestone req : t.requires())
-            n.addPrerequisite(milestone(req));
-        for (Milestone a : t.attains())
-            milestone(a).addPrerequisite(n);
-        tasks.add(n);
-        n.runIfPossible();
+    public void add(Task t) {
+        addAll(Collections.singleton(t));
     }
 
-    public void addAll(Iterable<? extends Task> tasks) {
-        for (Task task : tasks)
-            add(task);
+    /**
+     * Adds a set of taks to the reactor.
+     *
+     * <p>
+     * When adding a series of related tasks, it's often necessary to add them as a bulk,
+     * or else the newly added task can start executing before its dependencies are added.
+     */
+    public synchronized void addAll(Iterable<? extends Task> _tasks) {
+        List<Node> newNodes = new ArrayList<Node>();
+        for (final Task t : _tasks) {
+            Node n = new Node(new Runnable() {
+                public void run() {
+                    listener.onTaskStarted(t);
+                    try {
+                        runTask(t);
+                        listener.onTaskCompleted(t);
+                    } catch (Throwable x) {
+                        listener.onTaskFailed(t,x);
+                        throw new TunnelException(x);
+                    }
+                }
+
+                public String toString() {
+                    return "Task:"+t.getDisplayName();
+                }
+            });
+            for (Milestone req : t.requires())
+                n.addPrerequisite(milestone(req));
+            for (Milestone a : t.attains())
+                milestone(a).addPrerequisite(n);
+            tasks.add(n);
+            newNodes.add(n);
+        }
+
+        for (Node n : newNodes)
+            n.runIfPossible();
+        for (Node n : milestones.values())
+            n.runIfPossible();
     }
 
     /**

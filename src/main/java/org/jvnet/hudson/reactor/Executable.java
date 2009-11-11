@@ -11,4 +11,12 @@ public interface Executable {
      * @param session
      */
     void run(Session session) throws Exception;
+
+    /**
+     * No-op implementation.
+     */
+    public static final Executable NOOP = new Executable() {
+        public void run(Session session) throws Exception {
+        }
+    };
 }
