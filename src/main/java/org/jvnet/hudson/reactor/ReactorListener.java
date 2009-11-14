@@ -1,6 +1,7 @@
 package org.jvnet.hudson.reactor;
 
 import java.util.concurrent.Executor;
+import java.util.Collection;
 
 /**
  * Receives callback during the {@link Reactor#execute(Executor, ReactorListener)}.
@@ -46,4 +47,35 @@ public interface ReactorListener {
         public void onAttained(Milestone milestone) {
         }
     };
+
+    /**
+     * Bundles multiple listeners into one.
+     */
+    public static class Aggregator implements ReactorListener {
+        private final Collection<ReactorListener> listeners;
+
+        public Aggregator(Collection<ReactorListener> listeners) {
+            this.listeners = listeners;
+        }
+
+        public void onTaskStarted(Task t) {
+            for (ReactorListener listener : listeners)
+                listener.onTaskStarted(t);
+        }
+
+        public void onTaskCompleted(Task t) {
+            for (ReactorListener listener : listeners)
+                listener.onTaskCompleted(t);
+        }
+
+        public void onTaskFailed(Task t, Throwable err) {
+            for (ReactorListener listener : listeners)
+                listener.onTaskFailed(t,err);
+        }
+
+        public void onAttained(Milestone milestone) {
+            for (ReactorListener listener : listeners)
+                listener.onAttained(milestone);
+        }
+    }
 }
