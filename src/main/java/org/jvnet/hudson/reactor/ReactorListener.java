@@ -28,9 +28,12 @@ public interface ReactorListener {
      * Notifies that the execution of the task have failed with an exception.
      *
      * @param err
-     *      Either {@link Error} or {@link Exception}.
+     *      Either {@link Error} or {@link Exception}, indicating the cause of the failure.
+     * @param fatal
+     *      If true, this problem is {@linkplain Task#failureIsFatal() fatal}, and the reactor
+     *      is going to terminate. If false, the reactor will continue executing after this failure.
      */
-    void onTaskFailed(Task t, Throwable err);
+    void onTaskFailed(Task t, Throwable err, boolean fatal);
 
     /**
      * Indicates that the following milestone was attained.
@@ -42,7 +45,7 @@ public interface ReactorListener {
         }
         public void onTaskCompleted(Task t) {
         }
-        public void onTaskFailed(Task t, Throwable err) {
+        public void onTaskFailed(Task t, Throwable err, boolean fatal) {
         }
         public void onAttained(Milestone milestone) {
         }
@@ -68,9 +71,9 @@ public interface ReactorListener {
                 listener.onTaskCompleted(t);
         }
 
-        public void onTaskFailed(Task t, Throwable err) {
+        public void onTaskFailed(Task t, Throwable err, boolean fatal) {
             for (ReactorListener listener : listeners)
-                listener.onTaskFailed(t,err);
+                listener.onTaskFailed(t,err,fatal);
         }
 
         public void onAttained(Milestone milestone) {

@@ -18,6 +18,7 @@ public class TaskGraphBuilder extends TaskBuilder {
     private final Set<Task> tasks = new HashSet<Task>();
     private final List<Milestone> requiresForNextTask = new ArrayList<Milestone>();
     private final List<Milestone> attainsForNextTask = new ArrayList<Milestone>();
+    private boolean fatalForNextTask = true;
 
     public Iterable<? extends Task> discoverTasks(Reactor reactor) throws IOException {
         return Collections.unmodifiableSet(tasks);
@@ -36,8 +37,12 @@ public class TaskGraphBuilder extends TaskBuilder {
         tasks.add(t);
         t.requires(requiresForNextTask);
         t.attains(attainsForNextTask);
+        t.fatal = fatalForNextTask;
+
+        // reset
         requiresForNextTask.clear();
         attainsForNextTask.clear();
+        fatalForNextTask = true;
         return t;
     }
 
@@ -54,6 +59,11 @@ public class TaskGraphBuilder extends TaskBuilder {
      */
     public TaskGraphBuilder attains(Milestone... milestones) {
         attainsForNextTask.addAll(Arrays.asList(milestones));
+        return this;
+    }
+
+    public TaskGraphBuilder notFatal() {
+        fatalForNextTask = false;
         return this;
     }
 
@@ -84,6 +94,13 @@ public class TaskGraphBuilder extends TaskBuilder {
          * Returns the task that this handle represents.
          */
         Task asTask();
+
+        /**
+         * Marks this task as non-fatal.
+         *
+         * See {@link Task#failureIsFatal()}.
+         */
+        Task notFatal();
     }
 
     private static final class TaskImpl implements Task, Milestone, Handle {
@@ -91,6 +108,7 @@ public class TaskGraphBuilder extends TaskBuilder {
         private final Executable executable;
         private final Set<Milestone> requires = new HashSet<Milestone>();
         private final Set<Milestone> attains = new HashSet<Milestone>();
+        private boolean fatal;
 
         private TaskImpl(String displayName, Executable executable) {
             this.displayName = displayName;
@@ -108,6 +126,10 @@ public class TaskGraphBuilder extends TaskBuilder {
 
         public String getDisplayName() {
             return displayName;
+        }
+
+        public boolean failureIsFatal() {
+            return fatal;
         }
 
         public void run(Reactor reactor) throws Exception {
@@ -150,6 +172,11 @@ public class TaskGraphBuilder extends TaskBuilder {
         }
 
         public Task asTask() {
+            return this;
+        }
+
+        public Task notFatal() {
+            fatal = false;
             return this;
         }
     }

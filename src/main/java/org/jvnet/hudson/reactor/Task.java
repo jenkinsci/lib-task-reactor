@@ -25,4 +25,12 @@ public interface Task extends Executable {
      * Human readable description of this task. Used for progress report.
      */
     String getDisplayName();
+
+    /**
+     * Returns true if the failure of this task is fatal and should break the reactor.
+     * If false, the failure is sent to the listener but the successive tasks will be
+     * started as if this task was successful (and eventually resulting in the completion
+     * of the reactor execution, provided that no other fatal failures occur.)
+     */
+    boolean failureIsFatal();
 }
