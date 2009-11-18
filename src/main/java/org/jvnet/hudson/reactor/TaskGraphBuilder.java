@@ -50,10 +50,10 @@ public class TaskGraphBuilder extends TaskBuilder {
     }
 
     /**
-     * Adds a sequential task that requires the last task added.
+     * Indicates that the task to be added requires the completion of the last added task.
      */
-    public Handle addSequence(String displayName, Executable e) {
-        return requires(last).add(displayName,e);
+    public TaskGraphBuilder followedBy() {
+        return requires(last);
     }
 
     /**
