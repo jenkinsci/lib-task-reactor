@@ -19,6 +19,7 @@ public class TaskGraphBuilder extends TaskBuilder {
     private final List<Milestone> requiresForNextTask = new ArrayList<Milestone>();
     private final List<Milestone> attainsForNextTask = new ArrayList<Milestone>();
     private boolean fatalForNextTask = true;
+    private Handle last;
 
     public Iterable<? extends Task> discoverTasks(Reactor reactor) throws IOException {
         return Collections.unmodifiableSet(tasks);
@@ -43,7 +44,16 @@ public class TaskGraphBuilder extends TaskBuilder {
         requiresForNextTask.clear();
         attainsForNextTask.clear();
         fatalForNextTask = true;
+
+        last = t;
         return t;
+    }
+
+    /**
+     * Adds a sequential task that requires the last task added.
+     */
+    public Handle followedBy(String displayName, Executable e) {
+        return requires(last).add(displayName,e);
     }
 
     /**
