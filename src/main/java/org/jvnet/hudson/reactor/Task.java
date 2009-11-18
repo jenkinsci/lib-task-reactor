@@ -23,6 +23,9 @@ public interface Task extends Executable {
 
     /**
      * Human readable description of this task. Used for progress report.
+     *
+     * @return
+     *      null to indicate that this task doesn't have any significant to humans.
      */
     String getDisplayName();
 
