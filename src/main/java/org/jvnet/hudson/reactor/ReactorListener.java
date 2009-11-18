@@ -1,6 +1,7 @@
 package org.jvnet.hudson.reactor;
 
 import java.util.concurrent.Executor;
+import java.util.Collection;
 
 /**
  * Receives callback during the {@link Reactor#execute(Executor, ReactorListener)}.
@@ -27,9 +28,12 @@ public interface ReactorListener {
      * Notifies that the execution of the task have failed with an exception.
      *
      * @param err
-     *      Either {@link Error} or {@link Exception}.
+     *      Either {@link Error} or {@link Exception}, indicating the cause of the failure.
+     * @param fatal
+     *      If true, this problem is {@linkplain Task#failureIsFatal() fatal}, and the reactor
+     *      is going to terminate. If false, the reactor will continue executing after this failure.
      */
-    void onTaskFailed(Task t, Throwable err);
+    void onTaskFailed(Task t, Throwable err, boolean fatal);
 
     /**
      * Indicates that the following milestone was attained.
@@ -41,9 +45,40 @@ public interface ReactorListener {
         }
         public void onTaskCompleted(Task t) {
         }
-        public void onTaskFailed(Task t, Throwable err) {
+        public void onTaskFailed(Task t, Throwable err, boolean fatal) {
         }
         public void onAttained(Milestone milestone) {
         }
     };
+
+    /**
+     * Bundles multiple listeners into one.
+     */
+    public static class Aggregator implements ReactorListener {
+        private final Collection<ReactorListener> listeners;
+
+        public Aggregator(Collection<ReactorListener> listeners) {
+            this.listeners = listeners;
+        }
+
+        public void onTaskStarted(Task t) {
+            for (ReactorListener listener : listeners)
+                listener.onTaskStarted(t);
+        }
+
+        public void onTaskCompleted(Task t) {
+            for (ReactorListener listener : listeners)
+                listener.onTaskCompleted(t);
+        }
+
+        public void onTaskFailed(Task t, Throwable err, boolean fatal) {
+            for (ReactorListener listener : listeners)
+                listener.onTaskFailed(t,err,fatal);
+        }
+
+        public void onAttained(Milestone milestone) {
+            for (ReactorListener listener : listeners)
+                listener.onAttained(milestone);
+        }
+    }
 }

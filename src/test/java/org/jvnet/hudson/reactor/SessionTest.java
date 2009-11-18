@@ -2,6 +2,7 @@ package org.jvnet.hudson.reactor;
 
 import junit.framework.TestCase;
 import org.objectweb.carol.cmi.test.TeeWriter;
+import org.jvnet.hudson.reactor.TaskGraphBuilder.Handle;
 
 import javax.naming.NamingException;
 import java.io.OutputStreamWriter;
@@ -48,7 +49,7 @@ public class SessionTest extends TestCase {
                 w.println("Ended "+t.getDisplayName());
             }
 
-            public synchronized void onTaskFailed(Task t, Throwable err) {
+            public synchronized void onTaskFailed(Task t, Throwable err, boolean fatal) {
                 w.println("Failed "+t.getDisplayName()+" with "+err);
             }
 
@@ -146,6 +147,9 @@ public class SessionTest extends TestCase {
                 "Ended t4\n", result);
     }
 
+    /**
+     * Milestones that no one attains should be attained by default.
+     */
     public void testDanglingMilestone() throws Exception {
         Reactor s = buildSession("m1->t1->m2",new TestTask() {
             public void run(Reactor session, String id) throws Exception {
@@ -153,6 +157,30 @@ public class SessionTest extends TestCase {
         });
         String result = execute(s);
         assertEquals("Attained m1\nStarted t1\nEnded t1\nAttained m2\n",result);
+    }
+
+    /**
+     * Tasks that are non-fatal.
+     */
+    public void testNonFatalTask() throws Exception {
+        TaskGraphBuilder g = new TaskGraphBuilder();
+        Handle h = g.notFatal().add("1st", new Executable() {
+            public void run(Reactor reactor) throws Exception {
+                throw new IllegalArgumentException();   // simulated failure
+            }
+        });
+        g.requires(h).add("2nd",new Executable() {
+            public void run(Reactor reactor) throws Exception {
+            }
+        });
+        String result = execute(new Reactor(g));
+        assertEquals(
+                "Started 1st\n" +
+                "Failed 1st with java.lang.IllegalArgumentException\n" +
+                "Attained 1st\n" +
+                "Started 2nd\n" +
+                "Ended 2nd\n" +
+                "Attained 2nd\n",result);
     }
 
     /**
@@ -228,6 +256,10 @@ public class SessionTest extends TestCase {
 
         public void run(Reactor reactor) throws Exception {
             work.run(reactor, id);
+        }
+
+        public boolean failureIsFatal() {
+            return true;
         }
     }
 

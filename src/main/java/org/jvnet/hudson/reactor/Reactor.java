@@ -187,8 +187,10 @@ public class Reactor implements Iterable<Reactor.Node> {
                         runTask(t);
                         listener.onTaskCompleted(t);
                     } catch (Throwable x) {
-                        listener.onTaskFailed(t,x);
-                        throw new TunnelException(x);
+                        boolean fatal = t.failureIsFatal();
+                        listener.onTaskFailed(t,x, fatal);
+                        if (fatal)
+                            throw new TunnelException(x);
                     }
                 }
 
