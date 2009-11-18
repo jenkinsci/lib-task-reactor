@@ -52,7 +52,7 @@ public class TaskGraphBuilder extends TaskBuilder {
     /**
      * Adds a sequential task that requires the last task added.
      */
-    public Handle followedBy(String displayName, Executable e) {
+    public Handle addSequence(String displayName, Executable e) {
         return requires(last).add(displayName,e);
     }
 
