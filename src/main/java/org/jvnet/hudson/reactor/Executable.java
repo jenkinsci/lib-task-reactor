@@ -18,5 +18,10 @@ public interface Executable {
     public static final Executable NOOP = new Executable() {
         public void run(Reactor reactor) throws Exception {
         }
+
+        @Override
+        public String toString() {
+            return "noop";
+        }
     };
 }
