@@ -34,7 +34,7 @@
 
   <scm>
     <connection>scm:git:git://github.com/jenkinsci/lib-task-reactor.git</connection>
-    <developerConnection>scm:git:git@github.com:jenkinsci/lib-wtask-reactor.git</developerConnection>
+    <developerConnection>scm:git:git@github.com:jenkinsci/lib-task-reactor.git</developerConnection>
     <url>https://github.com/jenkinsci/lib-task-reactor</url>
   </scm>
 
