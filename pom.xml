@@ -8,7 +8,7 @@
   </parent>
   <artifactId>task-reactor</artifactId>
   <version>1.4-SNAPSHOT</version>
-  <name>init</name>
+  <name>Task Reactor</name>
 
   <dependencies>
     <dependency>
