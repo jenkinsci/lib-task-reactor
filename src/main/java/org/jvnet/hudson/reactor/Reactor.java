@@ -67,7 +67,7 @@ public class Reactor implements Iterable<Reactor.Node> {
 
     private Executor executor;
 
-    private ReactorListener listener;
+    private ReactorListener listener = ReactorListener.NOOP;
 
     private boolean executed = false;
 
@@ -271,7 +271,7 @@ public class Reactor implements Iterable<Reactor.Node> {
         } finally {
             // avoid memory leak
             this.executor = null;
-            this.listener = null;
+            this.listener = ReactorListener.NOOP;
         }
     }
 
