@@ -38,14 +38,18 @@ public interface ReactorListener {
     /**
      * Notifies that the execution of the task is about to start.
      */
-    void onTaskStarted(Task t);
+    default void onTaskStarted(Task t) {
+        // Do nothing by default
+    }
 
     /**
      * Notifies that the execution of the task is about to finish.
      *
      * This happens on the same thread that called {@link #onTaskStarted(Task)}.
      */
-    void onTaskCompleted(Task t);
+    default void onTaskCompleted(Task t) {
+        // Do nothing by default
+    }
 
     /**
      * Notifies that the execution of the task have failed with an exception.
@@ -56,22 +60,19 @@ public interface ReactorListener {
      *      If true, this problem is {@linkplain Task#failureIsFatal() fatal}, and the reactor
      *      is going to terminate. If false, the reactor will continue executing after this failure.
      */
-    void onTaskFailed(Task t, Throwable err, boolean fatal);
+    default void onTaskFailed(Task t, Throwable err, boolean fatal)  {
+        // Do nothing by default
+    }
 
     /**
      * Indicates that the following milestone was attained.
      */
-    void onAttained(Milestone milestone);
+    default void onAttained(Milestone milestone)  {
+        // Do nothing by default
+    }
 
     public static final ReactorListener NOOP = new ReactorListener() {
-        public void onTaskStarted(Task t) {
-        }
-        public void onTaskCompleted(Task t) {
-        }
-        public void onTaskFailed(Task t, Throwable err, boolean fatal) {
-        }
-        public void onAttained(Milestone milestone) {
-        }
+        // Default implementation for all handlers
     };
 
     /**
