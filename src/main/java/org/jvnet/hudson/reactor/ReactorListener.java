@@ -23,6 +23,7 @@
  */
 package org.jvnet.hudson.reactor;
 
+import java.util.concurrent.Callable;
 import java.util.concurrent.Executor;
 import java.util.Collection;
 
@@ -86,23 +87,41 @@ public interface ReactorListener {
         }
 
         public void onTaskStarted(Task t) {
-            for (ReactorListener listener : listeners)
-                listener.onTaskStarted(t);
+            run(l -> l.onTaskStarted(t));
         }
 
         public void onTaskCompleted(Task t) {
-            for (ReactorListener listener : listeners)
-                listener.onTaskCompleted(t);
+            run(l -> l.onTaskCompleted(t));
         }
 
         public void onTaskFailed(Task t, Throwable err, boolean fatal) {
-            for (ReactorListener listener : listeners)
-                listener.onTaskFailed(t,err,fatal);
+            run(l -> l.onTaskFailed(t,err,fatal));
         }
 
         public void onAttained(Milestone milestone) {
-            for (ReactorListener listener : listeners)
-                listener.onAttained(milestone);
+            run(l -> l.onAttained(milestone));
+        }
+
+        private void run(ListenerAction action) {
+            Error ex = null;
+            for (ReactorListener listener : listeners) {
+                try {
+                    action.run(listener);
+                } catch (Error x) {
+                    if (ex == null) {
+                        ex = x;
+                    } else {
+                        ex.addSuppressed(x);
+                    }
+                }
+            }
+            if (ex != null) {
+                throw ex;
+            }
+        }
+
+        private interface ListenerAction {
+            void run(ReactorListener listener);
         }
     }
 }

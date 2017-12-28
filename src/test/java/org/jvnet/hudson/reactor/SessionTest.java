@@ -39,6 +39,9 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Executors;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 /**
  * @author Kohsuke Kawaguchi
@@ -60,11 +63,7 @@ public class SessionTest extends TestCase {
         assertEqualsIgnoreNewlineStyle("Started t1\nEnded t1\nAttained m1\nStarted t2\nEnded t2\nAttained m2\nStarted t3\nEnded t3\n", sw);
     }
 
-    private String execute(Reactor s) throws Exception {
-        return execute(s, null);
-    }
-
-    private String execute(Reactor s, ReactorListener l) throws Exception {
+    private String execute(Reactor s, ReactorListener... addedListeners) throws Exception {
         StringWriter sw = new StringWriter();
         System.out.println("----");
         final PrintWriter w = new PrintWriter(new TeeWriter(sw,new OutputStreamWriter(System.out)),true);
@@ -92,8 +91,10 @@ public class SessionTest extends TestCase {
                 w.println("Attained "+milestone);
             }
         };
-        if (l != null) {
-            listener = new ReactorListener.Aggregator(Arrays.asList(listener, l));
+        if (addedListeners.length > 0) {
+            List<ReactorListener> listeners = Arrays.stream(addedListeners).collect(Collectors.toList());
+            listeners.add(0, listener);
+            listener = new ReactorListener.Aggregator(listeners);
         }
         s.execute(Executors.newCachedThreadPool(), listener);
         return sw.toString();
@@ -140,19 +141,30 @@ public class SessionTest extends TestCase {
      * Is the exception in listener's onTaskStarted properly forwarded?
      */
     public void testListenerOnTaskStartedFailure() throws Exception {
-        final Error[] e = new Error[1];
+        final List<Error> errors = new ArrayList<>();
         try {
-            execute(buildSession("->t1->m", createNoOp()), new ReactorListenerBase() {
+            execute(buildSession("->t1->m", createNoOp()),
+                new ReactorListenerBase() {
                     @Override
                     public void onTaskStarted(Task t) {
-                        throw e[0]=new AssertionError("Listener error");
+                        Error ex = new AssertionError("Listener error 1");
+                        errors.add(ex);
+                        throw ex;
+                    }
+                }, new ReactorListenerBase() {
+                    @Override
+                    public void onTaskStarted(Task t) {
+                        Error ex = new AssertionError("Listener error 2");
+                        errors.add(ex);
+                        throw ex;
                     }
                 }
-
             );
             fail();
         } catch (ReactorException x) {
-            assertSame(e[0],x.getCause());
+            assertEquals(2, errors.size());
+            assertSame(errors.get(0),x.getCause());
+            assertSame(errors.get(1),x.getCause().getSuppressed()[0]);
         }
     }
 
@@ -160,19 +172,30 @@ public class SessionTest extends TestCase {
      * Is the exception in listener's onTaskCompleted properly forwarded?
      */
     public void testListenerOnTaskCompletedFailure() throws Exception {
-        final Error[] e = new Error[1];
+        final List<Error> errors = new ArrayList<>();
         try {
-            execute(buildSession("->t1->m", createNoOp()), new ReactorListenerBase() {
+            execute(buildSession("->t1->m", createNoOp()),
+                   new ReactorListenerBase() {
                     @Override
                     public void onTaskCompleted(Task t) {
-                        throw e[0]=new AssertionError("Listener error");
+                        Error ex = new AssertionError("Listener error 1");
+                        errors.add(ex);
+                        throw ex;
+                    }
+                }, new ReactorListenerBase() {
+                    @Override
+                    public void onTaskCompleted(Task t) {
+                        Error ex = new AssertionError("Listener error 2");
+                        errors.add(ex);
+                        throw ex;
                     }
                 }
-
             );
             fail();
         } catch (ReactorException x) {
-            assertSame(e[0],x.getCause());
+            assertEquals(2, errors.size());
+            assertSame(errors.get(0),x.getCause());
+            assertSame(errors.get(1),x.getCause().getSuppressed()[0]);
         }
     }
 
@@ -180,7 +203,7 @@ public class SessionTest extends TestCase {
      * Is the exception in listener's onTaskFailed properly forwarded?
      */
     public void testListenerOnTaskFailedFailure() throws Exception {
-        final Error[] e = new Error[1];
+        final List<Error> errors = new ArrayList<>();
         final Exception[] ex = new Exception[1];
         try {
             execute(buildSession("->t1->m", new TestTask() {
@@ -190,15 +213,25 @@ public class SessionTest extends TestCase {
                 }), new ReactorListenerBase() {
                     @Override
                     public void onTaskFailed(Task t, Throwable err, boolean fatal) {
-                        throw e[0]=new AssertionError("Listener error");
+                        Error ex = new AssertionError("Listener error 1");
+                        errors.add(ex);
+                        throw ex;
+                    }
+                }, new ReactorListenerBase() {
+                    @Override
+                    public void onTaskFailed(Task t, Throwable err, boolean fatal) {
+                        Error ex = new AssertionError("Listener error 2");
+                        errors.add(ex);
+                        throw ex;
                     }
                 }
-
             );
             fail();
         } catch (ReactorException x) {
-            assertSame(e[0],x.getCause());
-            assertSame(ex[0], x.getCause().getSuppressed()[0]);
+            assertEquals(2, errors.size());
+            assertSame(errors.get(0),x.getCause());
+            assertSame(errors.get(1),x.getCause().getSuppressed()[0]);
+            assertSame(ex[0],x.getCause().getSuppressed()[1]);
         }
     }
 
@@ -206,18 +239,30 @@ public class SessionTest extends TestCase {
      * Is the exception in listener's onAttained properly forwarded?
      */
     public void testListenerOnAttainedFailure() throws Exception {
-        final Error[] e = new Error[1];
+        final List<Error> errors = new ArrayList<>();
         try {
-            execute(buildSession("->t1->m", createNoOp()), new ReactorListenerBase() {
+            execute(buildSession("->t1->m", createNoOp()),
+                new ReactorListenerBase() {
                     @Override
                     public void onAttained(Milestone milestone) {
-                        throw e[0]=new AssertionError("Listener error");
+                        Error ex = new AssertionError("Listener error 1");
+                        errors.add(ex);
+                        throw ex;
+                    }
+                }, new ReactorListenerBase() {
+                    @Override
+                    public void onAttained(Milestone milestone) {
+                        Error ex = new AssertionError("Listener error 2");
+                        errors.add(ex);
+                        throw ex;
                     }
                 }
             );
             fail();
         } catch (ReactorException x) {
-            assertSame(e[0],x.getCause());
+            assertEquals(2, errors.size());
+            assertSame(errors.get(0),x.getCause());
+            assertSame(errors.get(1),x.getCause().getSuppressed()[0]);
         }
     }
 
