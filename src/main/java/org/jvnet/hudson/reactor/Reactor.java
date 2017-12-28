@@ -215,13 +215,18 @@ public class Reactor implements Iterable<Reactor.Node> {
                         listener.onTaskCompleted(t);
                     } catch (Throwable x) {
                         boolean fatal = t.failureIsFatal();
+                        TunnelException te = null;
                         try {
                             listener.onTaskFailed(t, x, fatal);
                         } catch(Throwable x2) {
-                            x = x2;
+                            te = new TunnelException(x2);
+                            x2.addSuppressed(x);
+                        }
+                        if (te == null) {
+                            te = new TunnelException(x);
                         }
                         if (fatal)
-                            throw new TunnelException(x);
+                            throw te;
                     }
                 }
 
@@ -273,8 +278,9 @@ public class Reactor implements Iterable<Reactor.Node> {
             // block until everything is done
             while(pending>0) {
                 wait();
-                if (fatal!=null)
+                if (fatal!=null) {
                     throw new ReactorException(fatal.getCause());
+                }
             }
         } finally {
             // avoid memory leak

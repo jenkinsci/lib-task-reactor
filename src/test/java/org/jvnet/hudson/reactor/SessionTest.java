@@ -181,10 +181,11 @@ public class SessionTest extends TestCase {
      */
     public void testListenerOnTaskFailedFailure() throws Exception {
         final Error[] e = new Error[1];
+        final Exception[] ex = new Exception[1];
         try {
             execute(buildSession("->t1->m", new TestTask() {
                     public void run(Reactor reactor, String id) throws Exception {
-                        throw new IOException("Yep");
+                        throw ex[0]=new IOException("Yep");
                     }
                 }), new ReactorListenerBase() {
                     @Override
@@ -197,6 +198,7 @@ public class SessionTest extends TestCase {
             fail();
         } catch (ReactorException x) {
             assertSame(e[0],x.getCause());
+            assertSame(ex[0], x.getCause().getSuppressed()[0]);
         }
     }
 
