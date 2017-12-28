@@ -29,9 +29,11 @@ package org.jvnet.hudson.reactor;
  * @author Kohsuke Kawaguchi
  */
 public interface Executable {
+
     /**
      * Executes a task. Any exception thrown will abort the session.
-     * @param reactor
+     * @param reactor Reactor to be executed
+     * @throws Exception Execution error
      */
     void run(Reactor reactor) throws Exception;
 
