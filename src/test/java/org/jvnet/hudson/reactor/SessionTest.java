@@ -24,10 +24,12 @@
 package org.jvnet.hudson.reactor;
 
 import junit.framework.TestCase;
+import org.objectweb.carol.cmi.Naming;
 import org.objectweb.carol.cmi.test.TeeWriter;
 import org.jvnet.hudson.reactor.TaskGraphBuilder.Handle;
 
 import javax.naming.NamingException;
+import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -59,11 +61,15 @@ public class SessionTest extends TestCase {
     }
 
     private String execute(Reactor s) throws Exception {
+        return execute(s, null);
+    }
+
+    private String execute(Reactor s, ReactorListener l) throws Exception {
         StringWriter sw = new StringWriter();
         System.out.println("----");
         final PrintWriter w = new PrintWriter(new TeeWriter(sw,new OutputStreamWriter(System.out)),true);
 
-        s.execute(Executors.newCachedThreadPool(),new ReactorListener() {
+        ReactorListener listener = new ReactorListener() {
 
             //TODO: Does it really needs handlers to be synchronized?
             @Override
@@ -85,7 +91,11 @@ public class SessionTest extends TestCase {
             public synchronized void onAttained(Milestone milestone) {
                 w.println("Attained "+milestone);
             }
-        });
+        };
+        if (l != null) {
+            listener = new ReactorListener.Aggregator(Arrays.asList(listener, l));
+        }
+        s.execute(Executors.newCachedThreadPool(), listener);
         return sw.toString();
     }
 
@@ -120,6 +130,89 @@ public class SessionTest extends TestCase {
                     throw e[0]=new NamingException("Yep");
                 }
             }));
+            fail();
+        } catch (ReactorException x) {
+            assertSame(e[0],x.getCause());
+        }
+    }
+
+    /**
+     * Is the exception in listener's onTaskStarted properly forwarded?
+     */
+    public void testListenerOnTaskStartedFailure() throws Exception {
+        final Error[] e = new Error[1];
+        try {
+            execute(buildSession("->t1->m", createNoOp()), new ReactorListenerBase() {
+                    @Override
+                    public void onTaskStarted(Task t) {
+                        throw e[0]=new AssertionError("Listener error");
+                    }
+                }
+
+            );
+            fail();
+        } catch (ReactorException x) {
+            assertSame(e[0],x.getCause());
+        }
+    }
+
+    /**
+     * Is the exception in listener's onTaskCompleted properly forwarded?
+     */
+    public void testListenerOnTaskCompletedFailure() throws Exception {
+        final Error[] e = new Error[1];
+        try {
+            execute(buildSession("->t1->m", createNoOp()), new ReactorListenerBase() {
+                    @Override
+                    public void onTaskCompleted(Task t) {
+                        throw e[0]=new AssertionError("Listener error");
+                    }
+                }
+
+            );
+            fail();
+        } catch (ReactorException x) {
+            assertSame(e[0],x.getCause());
+        }
+    }
+
+    /**
+     * Is the exception in listener's onTaskFailed properly forwarded?
+     */
+    public void testListenerOnTaskFailedFailure() throws Exception {
+        final Error[] e = new Error[1];
+        try {
+            execute(buildSession("->t1->m", new TestTask() {
+                    public void run(Reactor reactor, String id) throws Exception {
+                        throw new IOException("Yep");
+                    }
+                }), new ReactorListenerBase() {
+                    @Override
+                    public void onTaskFailed(Task t, Throwable err, boolean fatal) {
+                        throw e[0]=new AssertionError("Listener error");
+                    }
+                }
+
+            );
+            fail();
+        } catch (ReactorException x) {
+            assertSame(e[0],x.getCause());
+        }
+    }
+
+    /**
+     * Is the exception in listener's onAttained properly forwarded?
+     */
+    public void testListenerOnAttainedFailure() throws Exception {
+        final Error[] e = new Error[1];
+        try {
+            execute(buildSession("->t1->m", createNoOp()), new ReactorListenerBase() {
+                    @Override
+                    public void onAttained(Milestone milestone) {
+                        throw e[0]=new AssertionError("Listener error");
+                    }
+                }
+            );
             fail();
         } catch (ReactorException x) {
             assertSame(e[0],x.getCause());
@@ -237,6 +330,18 @@ public class SessionTest extends TestCase {
         };
     }
 
+    /**
+     * Creates {@link TestTask} that does nothing.
+     */
+    private TestTask createNoOp() {
+        return new TestTask() {
+            @Override
+            public void run(Reactor reactor, String id) throws Exception {
+                // do nothing
+            }
+        };
+    }
+
     interface TestTask {
         void run(Reactor reactor, String id) throws Exception;
     }
@@ -329,5 +434,27 @@ public class SessionTest extends TestCase {
             return null;
         }
         return s.replace("\r\n", "\n").replace('\r', '\n');
+    }
+
+    private abstract class ReactorListenerBase implements ReactorListener {
+        @Override
+        public void onTaskStarted(Task t) {
+
+        }
+
+        @Override
+        public void onTaskCompleted(Task t) {
+
+        }
+
+        @Override
+        public void onTaskFailed(Task t, Throwable err, boolean fatal) {
+
+        }
+
+        @Override
+        public void onAttained(Milestone milestone) {
+
+        }
     }
 }

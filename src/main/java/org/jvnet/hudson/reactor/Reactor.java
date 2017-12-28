@@ -173,7 +173,11 @@ public class Reactor implements Iterable<Reactor.Node> {
         if (n==null) {
             milestones.put(m,n=new Node(new Runnable() {
                 public void run() {
-                    listener.onAttained(m);
+                    try {
+                        listener.onAttained(m);
+                    } catch(Throwable x) {
+                        throw new TunnelException(x);
+                    }
                 }
                 public String toString() {
                     return "Milestone:"+m.toString();
@@ -205,13 +209,17 @@ public class Reactor implements Iterable<Reactor.Node> {
         for (final Task t : _tasks) {
             Node n = new Node(new Runnable() {
                 public void run() {
-                    listener.onTaskStarted(t);
                     try {
+                        listener.onTaskStarted(t);
                         runTask(t);
                         listener.onTaskCompleted(t);
                     } catch (Throwable x) {
                         boolean fatal = t.failureIsFatal();
-                        listener.onTaskFailed(t,x, fatal);
+                        try {
+                            listener.onTaskFailed(t, x, fatal);
+                        } catch(Throwable x2) {
+                            x = x2;
+                        }
                         if (fatal)
                             throw new TunnelException(x);
                     }
