@@ -55,7 +55,7 @@ public class SessionTest extends TestCase {
 
         String sw = execute(s);
 
-        assertEquals("Started t1\nEnded t1\nAttained m1\nStarted t2\nEnded t2\nAttained m2\nStarted t3\nEnded t3\n", sw);
+        assertEqualsIgnoreNewlineStyle("Started t1\nEnded t1\nAttained m1\nStarted t2\nEnded t2\nAttained m2\nStarted t3\nEnded t3\n", sw);
     }
 
     private String execute(Reactor s) throws Exception {
@@ -143,7 +143,7 @@ public class SessionTest extends TestCase {
 
         // one more task added  during execution
         assertEquals(3,s.size());
-        assertEquals("Started t1\nEnded t1\nAttained m1\nStarted t2\nEnded t2\nStarted t3\nEnded t3\n", result);
+        assertEqualsIgnoreNewlineStyle("Started t1\nEnded t1\nAttained m1\nStarted t2\nEnded t2\nStarted t3\nEnded t3\n", result);
     }
 
     /**
@@ -163,7 +163,7 @@ public class SessionTest extends TestCase {
 
         // one more task added  during execution
         assertEquals(4,s.size());
-        assertEquals("Started t1\n" +
+        assertEqualsIgnoreNewlineStyle("Started t1\n" +
                 "Ended t1\n" +
                 "Attained m1\n" +
                 "Started t2\n" +
@@ -185,7 +185,7 @@ public class SessionTest extends TestCase {
             }
         });
         String result = execute(s);
-        assertEquals("Attained m1\nStarted t1\nEnded t1\nAttained m2\n",result);
+        assertEqualsIgnoreNewlineStyle("Attained m1\nStarted t1\nEnded t1\nAttained m2\n",result);
     }
 
     /**
@@ -203,7 +203,7 @@ public class SessionTest extends TestCase {
             }
         });
         String result = execute(new Reactor(g));
-        assertEquals(
+        assertEqualsIgnoreNewlineStyle(
                 "Started 1st\n" +
                 "Failed 1st with java.lang.IllegalArgumentException\n" +
                 "Attained 1st\n" +
@@ -318,5 +318,16 @@ public class SessionTest extends TestCase {
         public String toString() {
             return id;
         }
+    }
+
+    private static void assertEqualsIgnoreNewlineStyle(String s1, String s2) {
+        assertEquals(normalizeLineEnds(s1), normalizeLineEnds(s2));
+    }
+
+    private static String normalizeLineEnds(String s) {
+        if (s == null) {
+            return null;
+        }
+        return s.replace("\r\n", "\n").replace('\r', '\n');
     }
 }
