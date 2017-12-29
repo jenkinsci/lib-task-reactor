@@ -64,18 +64,24 @@ public class SessionTest extends TestCase {
         final PrintWriter w = new PrintWriter(new TeeWriter(sw,new OutputStreamWriter(System.out)),true);
 
         s.execute(Executors.newCachedThreadPool(),new ReactorListener() {
+
+            //TODO: Does it really needs handlers to be synchronized?
+            @Override
             public synchronized void onTaskStarted(Task t) {
                 w.println("Started "+t.getDisplayName());
             }
 
+            @Override
             public synchronized void onTaskCompleted(Task t) {
                 w.println("Ended "+t.getDisplayName());
             }
 
+            @Override
             public synchronized void onTaskFailed(Task t, Throwable err, boolean fatal) {
                 w.println("Failed "+t.getDisplayName()+" with "+err);
             }
 
+            @Override
             public synchronized void onAttained(Milestone milestone) {
                 w.println("Attained "+milestone);
             }

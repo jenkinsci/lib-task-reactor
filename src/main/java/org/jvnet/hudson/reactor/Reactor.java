@@ -194,7 +194,7 @@ public class Reactor implements Iterable<Reactor.Node> {
     }
 
     /**
-     * Adds a set of taks to the reactor.
+     * Adds a set of tasks to the reactor.
      *
      * <p>
      * When adding a series of related tasks, it's often necessary to add them as a bulk,
