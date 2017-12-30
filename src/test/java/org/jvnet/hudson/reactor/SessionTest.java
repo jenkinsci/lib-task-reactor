@@ -24,7 +24,6 @@
 package org.jvnet.hudson.reactor;
 
 import junit.framework.TestCase;
-import org.objectweb.carol.cmi.Naming;
 import org.objectweb.carol.cmi.test.TeeWriter;
 import org.jvnet.hudson.reactor.TaskGraphBuilder.Handle;
 
@@ -40,8 +39,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 
 /**
  * @author Kohsuke Kawaguchi
@@ -51,11 +48,7 @@ public class SessionTest extends TestCase {
      * Makes sure the ordering happens.
      */
     public void testSequentialOrdering() throws Exception {
-        Reactor s = buildSession("->t1->m1 m1->t2->m2 m2->t3->",new TestTask() {
-            public void run(Reactor session, String id) throws Exception {
-                System.out.println(id);
-            }
-        });
+        Reactor s = buildSession("->t1->m1 m1->t2->m2 m2->t3->", (session, id) -> System.out.println(id));
         assertEquals(3,s.size());
 
         String sw = execute(s);
@@ -126,10 +119,8 @@ public class SessionTest extends TestCase {
     public void testFailure() throws Exception {
         final Exception[] e = new Exception[1];
         try {
-            execute(buildSession("->t1->", new TestTask() {
-                public void run(Reactor reactor, String id) throws Exception {
-                    throw e[0]=new NamingException("Yep");
-                }
+            execute(buildSession("->t1->", (reactor, id) -> {
+                throw e[0]=new NamingException("Yep");
             }));
             fail();
         } catch (ReactorException x) {
@@ -144,14 +135,14 @@ public class SessionTest extends TestCase {
         final List<Error> errors = new ArrayList<>();
         try {
             execute(buildSession("->t1->m", createNoOp()),
-                new ReactorListenerBase() {
+                new ReactorListener() {
                     @Override
                     public void onTaskStarted(Task t) {
                         Error ex = new AssertionError("Listener error 1");
                         errors.add(ex);
                         throw ex;
                     }
-                }, new ReactorListenerBase() {
+                }, new ReactorListener() {
                     @Override
                     public void onTaskStarted(Task t) {
                         Error ex = new AssertionError("Listener error 2");
@@ -175,14 +166,14 @@ public class SessionTest extends TestCase {
         final List<Error> errors = new ArrayList<>();
         try {
             execute(buildSession("->t1->m", createNoOp()),
-                   new ReactorListenerBase() {
+                   new ReactorListener() {
                     @Override
                     public void onTaskCompleted(Task t) {
                         Error ex = new AssertionError("Listener error 1");
                         errors.add(ex);
                         throw ex;
                     }
-                }, new ReactorListenerBase() {
+                }, new ReactorListener() {
                     @Override
                     public void onTaskCompleted(Task t) {
                         Error ex = new AssertionError("Listener error 2");
@@ -206,18 +197,16 @@ public class SessionTest extends TestCase {
         final List<Error> errors = new ArrayList<>();
         final Exception[] ex = new Exception[1];
         try {
-            execute(buildSession("->t1->m", new TestTask() {
-                    public void run(Reactor reactor, String id) throws Exception {
-                        throw ex[0]=new IOException("Yep");
-                    }
-                }), new ReactorListenerBase() {
+            execute(buildSession("->t1->m", (reactor, id) -> {
+                throw ex[0]=new IOException("Yep");
+            }), new ReactorListener() {
                     @Override
                     public void onTaskFailed(Task t, Throwable err, boolean fatal) {
                         Error ex = new AssertionError("Listener error 1");
                         errors.add(ex);
                         throw ex;
                     }
-                }, new ReactorListenerBase() {
+                }, new ReactorListener() {
                     @Override
                     public void onTaskFailed(Task t, Throwable err, boolean fatal) {
                         Error ex = new AssertionError("Listener error 2");
@@ -242,14 +231,14 @@ public class SessionTest extends TestCase {
         final List<Error> errors = new ArrayList<>();
         try {
             execute(buildSession("->t1->m", createNoOp()),
-                new ReactorListenerBase() {
+                new ReactorListener() {
                     @Override
                     public void onAttained(Milestone milestone) {
                         Error ex = new AssertionError("Listener error 1");
                         errors.add(ex);
                         throw ex;
                     }
-                }, new ReactorListenerBase() {
+                }, new ReactorListener() {
                     @Override
                     public void onAttained(Milestone milestone) {
                         Error ex = new AssertionError("Listener error 2");
@@ -320,10 +309,7 @@ public class SessionTest extends TestCase {
      * Milestones that no one attains should be attained by default.
      */
     public void testDanglingMilestone() throws Exception {
-        Reactor s = buildSession("m1->t1->m2",new TestTask() {
-            public void run(Reactor session, String id) throws Exception {
-            }
-        });
+        Reactor s = buildSession("m1->t1->m2", (session, id) -> { });
         String result = execute(s);
         assertEqualsIgnoreNewlineStyle("Attained m1\nStarted t1\nEnded t1\nAttained m2\n",result);
     }
@@ -333,15 +319,10 @@ public class SessionTest extends TestCase {
      */
     public void testNonFatalTask() throws Exception {
         TaskGraphBuilder g = new TaskGraphBuilder();
-        Handle h = g.notFatal().add("1st", new Executable() {
-            public void run(Reactor reactor) throws Exception {
-                throw new IllegalArgumentException();   // simulated failure
-            }
+        Handle h = g.notFatal().add("1st", reactor -> {
+            throw new IllegalArgumentException();   // simulated failure
         });
-        g.requires(h).add("2nd",new Executable() {
-            public void run(Reactor reactor) throws Exception {
-            }
-        });
+        g.requires(h).add("2nd", reactor -> { });
         String result = execute(new Reactor(g));
         assertEqualsIgnoreNewlineStyle(
                 "Started 1st\n" +
@@ -381,11 +362,8 @@ public class SessionTest extends TestCase {
      * Creates {@link TestTask} that does nothing.
      */
     private TestTask createNoOp() {
-        return new TestTask() {
-            @Override
-            public void run(Reactor reactor, String id) throws Exception {
-                // do nothing
-            }
+        return (reactor, id) -> {
+            // do nothing
         };
     }
 
@@ -394,7 +372,7 @@ public class SessionTest extends TestCase {
     }
 
     private Reactor buildSession(String spec, final TestTask work) throws Exception {
-        Collection<TaskImpl> tasks = new ArrayList<TaskImpl>();
+        Collection<TaskImpl> tasks = new ArrayList<>();
         for (String node : spec.split(" "))
             tasks.add(new TaskImpl(node,work));
 
@@ -411,13 +389,13 @@ public class SessionTest extends TestCase {
             String[] tokens = id.split("->");
             this.id = tokens[1];
             // tricky handling necessary due to inconsistency in how split works
-            this.requires = adapt(tokens[0].length()==0 ? Collections.<String>emptyList() : Arrays.asList(tokens[0].split(",")));
-            this.attains = adapt(tokens.length<3 ? Collections.<String>emptyList() : Arrays.asList(tokens[2].split(",")));
+            this.requires = adapt(tokens[0].length()==0 ? Collections.emptyList() : Arrays.asList(tokens[0].split(",")));
+            this.attains = adapt(tokens.length<3 ? Collections.emptyList() : Arrays.asList(tokens[2].split(",")));
             this.work = work;
         }
 
         private Collection<Milestone> adapt(List<String> strings) {
-            List<Milestone> r = new ArrayList<Milestone>();
+            List<Milestone> r = new ArrayList<>();
             for (String s : strings)
                 r.add(new MilestoneImpl(s));
             return r;
@@ -481,27 +459,5 @@ public class SessionTest extends TestCase {
             return null;
         }
         return s.replace("\r\n", "\n").replace('\r', '\n');
-    }
-
-    private abstract class ReactorListenerBase implements ReactorListener {
-        @Override
-        public void onTaskStarted(Task t) {
-
-        }
-
-        @Override
-        public void onTaskCompleted(Task t) {
-
-        }
-
-        @Override
-        public void onTaskFailed(Task t, Throwable err, boolean fatal) {
-
-        }
-
-        @Override
-        public void onAttained(Milestone milestone) {
-
-        }
     }
 }
