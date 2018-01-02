@@ -132,7 +132,7 @@ public class SessionTest extends TestCase {
      * Is the exception in listener's onTaskStarted properly forwarded?
      */
     public void testListenerOnTaskStartedFailure() throws Exception {
-        final List<Error> errors = new ArrayList<>();
+        final List<Throwable> errors = new ArrayList<>();
         try {
             execute(buildSession("->t1->m", createNoOp()),
                 new ReactorListener() {
@@ -145,7 +145,7 @@ public class SessionTest extends TestCase {
                 }, new ReactorListener() {
                     @Override
                     public void onTaskStarted(Task t) {
-                        Error ex = new AssertionError("Listener error 2");
+                        RuntimeException ex = new NullPointerException("Listener runtime exception");
                         errors.add(ex);
                         throw ex;
                     }
@@ -163,20 +163,20 @@ public class SessionTest extends TestCase {
      * Is the exception in listener's onTaskCompleted properly forwarded?
      */
     public void testListenerOnTaskCompletedFailure() throws Exception {
-        final List<Error> errors = new ArrayList<>();
+        final List<Throwable> errors = new ArrayList<>();
         try {
             execute(buildSession("->t1->m", createNoOp()),
                    new ReactorListener() {
                     @Override
                     public void onTaskCompleted(Task t) {
-                        Error ex = new AssertionError("Listener error 1");
+                        Error ex = new AssertionError("Listener error");
                         errors.add(ex);
                         throw ex;
                     }
                 }, new ReactorListener() {
                     @Override
                     public void onTaskCompleted(Task t) {
-                        Error ex = new AssertionError("Listener error 2");
+                        RuntimeException ex = new NullPointerException("Listener runtime exception");
                         errors.add(ex);
                         throw ex;
                     }
@@ -194,7 +194,7 @@ public class SessionTest extends TestCase {
      * Is the exception in listener's onTaskFailed properly forwarded?
      */
     public void testListenerOnTaskFailedFailure() throws Exception {
-        final List<Error> errors = new ArrayList<>();
+        final List<Throwable> errors = new ArrayList<>();
         final Exception[] ex = new Exception[1];
         try {
             execute(buildSession("->t1->m", (reactor, id) -> {
@@ -202,14 +202,14 @@ public class SessionTest extends TestCase {
             }), new ReactorListener() {
                     @Override
                     public void onTaskFailed(Task t, Throwable err, boolean fatal) {
-                        Error ex = new AssertionError("Listener error 1");
+                        Error ex = new AssertionError("Listener error");
                         errors.add(ex);
                         throw ex;
                     }
                 }, new ReactorListener() {
                     @Override
                     public void onTaskFailed(Task t, Throwable err, boolean fatal) {
-                        Error ex = new AssertionError("Listener error 2");
+                        RuntimeException ex = new NullPointerException("Listener runtime exception");
                         errors.add(ex);
                         throw ex;
                     }
@@ -228,20 +228,20 @@ public class SessionTest extends TestCase {
      * Is the exception in listener's onAttained properly forwarded?
      */
     public void testListenerOnAttainedFailure() throws Exception {
-        final List<Error> errors = new ArrayList<>();
+        final List<Throwable> errors = new ArrayList<>();
         try {
             execute(buildSession("->t1->m", createNoOp()),
                 new ReactorListener() {
                     @Override
                     public void onAttained(Milestone milestone) {
-                        Error ex = new AssertionError("Listener error 1");
+                        Error ex = new AssertionError("Listener error");
                         errors.add(ex);
                         throw ex;
                     }
                 }, new ReactorListener() {
                     @Override
                     public void onAttained(Milestone milestone) {
-                        Error ex = new AssertionError("Listener error 2");
+                        RuntimeException ex = new NullPointerException("Listener runtime exception");
                         errors.add(ex);
                         throw ex;
                     }

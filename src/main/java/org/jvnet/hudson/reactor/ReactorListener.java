@@ -103,11 +103,11 @@ public interface ReactorListener {
         }
 
         private void run(ListenerAction action) {
-            Error ex = null;
+            Throwable ex = null;
             for (ReactorListener listener : listeners) {
                 try {
                     action.run(listener);
-                } catch (Error x) {
+                } catch (Throwable x) {
                     if (ex == null) {
                         ex = x;
                     } else {
@@ -116,7 +116,11 @@ public interface ReactorListener {
                 }
             }
             if (ex != null) {
-                throw ex;
+                if (ex instanceof Error) {
+                    throw (Error) ex;
+                } else if (ex instanceof RuntimeException) {
+                    throw (RuntimeException) ex;
+                }
             }
         }
 
