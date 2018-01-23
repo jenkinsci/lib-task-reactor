@@ -242,7 +242,7 @@ public class SessionTest extends TestCase {
     }
 
     private Reactor buildSession(String spec, final TestTask work) throws Exception {
-        Collection<TaskImpl> tasks = new ArrayList<TaskImpl>();
+        Collection<TaskImpl> tasks = new ArrayList<>();
         for (String node : spec.split(" "))
             tasks.add(new TaskImpl(node,work));
 
@@ -265,7 +265,7 @@ public class SessionTest extends TestCase {
         }
 
         private Collection<Milestone> adapt(List<String> strings) {
-            List<Milestone> r = new ArrayList<Milestone>();
+            List<Milestone> r = new ArrayList<>();
             for (String s : strings)
                 r.add(new MilestoneImpl(s));
             return r;

@@ -24,9 +24,7 @@
 package org.jvnet.hudson.reactor;
 
 import java.io.IOException;
-import java.lang.reflect.Array;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -58,7 +56,7 @@ public abstract class TaskBuilder {
     public static TaskBuilder union(final Iterable<? extends TaskBuilder> builders) {
         return new TaskBuilder() {
             public Iterable<? extends Task> discoverTasks(Reactor reactor) throws IOException {
-                List<Task> r = new ArrayList<Task>();
+                List<Task> r = new ArrayList<>();
                 for (TaskBuilder b : builders)
                     for (Task t : b.discoverTasks(reactor))
                         r.add(t);
@@ -74,5 +72,5 @@ public abstract class TaskBuilder {
     /**
      * {@link TaskBuilder} that contributes no task.
      */
-    public static final TaskBuilder EMPTY_BUILDER = fromTasks(Collections.<Task>emptyList());
+    public static final TaskBuilder EMPTY_BUILDER = fromTasks(Collections.emptyList());
 }

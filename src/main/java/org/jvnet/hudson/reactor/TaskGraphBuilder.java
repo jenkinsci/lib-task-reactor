@@ -38,9 +38,9 @@ import java.util.ArrayList;
  * @author Kohsuke Kawaguchi
  */
 public class TaskGraphBuilder extends TaskBuilder {
-    private final Set<Task> tasks = new HashSet<Task>();
-    private final List<Milestone> requiresForNextTask = new ArrayList<Milestone>();
-    private final List<Milestone> attainsForNextTask = new ArrayList<Milestone>();
+    private final Set<Task> tasks = new HashSet<>();
+    private final List<Milestone> requiresForNextTask = new ArrayList<>();
+    private final List<Milestone> attainsForNextTask = new ArrayList<>();
     private boolean fatalForNextTask = true;
     private Handle last;
 
@@ -139,8 +139,8 @@ public class TaskGraphBuilder extends TaskBuilder {
     private static final class TaskImpl implements Task, Milestone, Handle {
         private final String displayName;
         private final Executable executable;
-        private final Set<Milestone> requires = new HashSet<Milestone>();
-        private final Set<Milestone> attains = new HashSet<Milestone>();
+        private final Set<Milestone> requires = new HashSet<>();
+        private final Set<Milestone> attains = new HashSet<>();
         private boolean fatal;
 
         private TaskImpl(String displayName, Executable executable) {
