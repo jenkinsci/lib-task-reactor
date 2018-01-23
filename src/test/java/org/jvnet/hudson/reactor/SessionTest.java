@@ -28,6 +28,7 @@ import org.objectweb.carol.cmi.test.TeeWriter;
 import org.jvnet.hudson.reactor.TaskGraphBuilder.Handle;
 
 import javax.naming.NamingException;
+import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -37,6 +38,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Executors;
+import java.util.stream.Collectors;
 
 /**
  * @author Kohsuke Kawaguchi
@@ -46,24 +48,20 @@ public class SessionTest extends TestCase {
      * Makes sure the ordering happens.
      */
     public void testSequentialOrdering() throws Exception {
-        Reactor s = buildSession("->t1->m1 m1->t2->m2 m2->t3->",new TestTask() {
-            public void run(Reactor session, String id) throws Exception {
-                System.out.println(id);
-            }
-        });
+        Reactor s = buildSession("->t1->m1 m1->t2->m2 m2->t3->", (session, id) -> System.out.println(id));
         assertEquals(3,s.size());
 
         String sw = execute(s);
 
-        assertEquals("Started t1\nEnded t1\nAttained m1\nStarted t2\nEnded t2\nAttained m2\nStarted t3\nEnded t3\n", sw);
+        assertEqualsIgnoreNewlineStyle("Started t1\nEnded t1\nAttained m1\nStarted t2\nEnded t2\nAttained m2\nStarted t3\nEnded t3\n", sw);
     }
 
-    private String execute(Reactor s) throws Exception {
+    private String execute(Reactor s, ReactorListener... addedListeners) throws Exception {
         StringWriter sw = new StringWriter();
         System.out.println("----");
         final PrintWriter w = new PrintWriter(new TeeWriter(sw,new OutputStreamWriter(System.out)),true);
 
-        s.execute(Executors.newCachedThreadPool(),new ReactorListener() {
+        ReactorListener listener = new ReactorListener() {
 
             //TODO: Does it really needs handlers to be synchronized?
             @Override
@@ -85,7 +83,13 @@ public class SessionTest extends TestCase {
             public synchronized void onAttained(Milestone milestone) {
                 w.println("Attained "+milestone);
             }
-        });
+        };
+        if (addedListeners.length > 0) {
+            List<ReactorListener> listeners = Arrays.stream(addedListeners).collect(Collectors.toList());
+            listeners.add(0, listener);
+            listener = new ReactorListener.Aggregator(listeners);
+        }
+        s.execute(Executors.newCachedThreadPool(), listener);
         return sw.toString();
     }
 
@@ -115,14 +119,139 @@ public class SessionTest extends TestCase {
     public void testFailure() throws Exception {
         final Exception[] e = new Exception[1];
         try {
-            execute(buildSession("->t1->", new TestTask() {
-                public void run(Reactor reactor, String id) throws Exception {
-                    throw e[0]=new NamingException("Yep");
-                }
+            execute(buildSession("->t1->", (reactor, id) -> {
+                throw e[0]=new NamingException("Yep");
             }));
             fail();
         } catch (ReactorException x) {
             assertSame(e[0],x.getCause());
+        }
+    }
+
+    /**
+     * Is the exception in listener's onTaskStarted properly forwarded?
+     */
+    public void testListenerOnTaskStartedFailure() throws Exception {
+        final List<Throwable> errors = new ArrayList<>();
+        try {
+            execute(buildSession("->t1->m", createNoOp()),
+                new ReactorListener() {
+                    @Override
+                    public void onTaskStarted(Task t) {
+                        Error ex = new AssertionError("Listener error 1");
+                        errors.add(ex);
+                        throw ex;
+                    }
+                }, new ReactorListener() {
+                    @Override
+                    public void onTaskStarted(Task t) {
+                        RuntimeException ex = new NullPointerException("Listener runtime exception");
+                        errors.add(ex);
+                        throw ex;
+                    }
+                }
+            );
+            fail();
+        } catch (ReactorException x) {
+            assertEquals(2, errors.size());
+            assertSame(errors.get(0),x.getCause());
+            assertSame(errors.get(1),x.getCause().getSuppressed()[0]);
+        }
+    }
+
+    /**
+     * Is the exception in listener's onTaskCompleted properly forwarded?
+     */
+    public void testListenerOnTaskCompletedFailure() throws Exception {
+        final List<Throwable> errors = new ArrayList<>();
+        try {
+            execute(buildSession("->t1->m", createNoOp()),
+                   new ReactorListener() {
+                    @Override
+                    public void onTaskCompleted(Task t) {
+                        Error ex = new AssertionError("Listener error");
+                        errors.add(ex);
+                        throw ex;
+                    }
+                }, new ReactorListener() {
+                    @Override
+                    public void onTaskCompleted(Task t) {
+                        RuntimeException ex = new NullPointerException("Listener runtime exception");
+                        errors.add(ex);
+                        throw ex;
+                    }
+                }
+            );
+            fail();
+        } catch (ReactorException x) {
+            assertEquals(2, errors.size());
+            assertSame(errors.get(0),x.getCause());
+            assertSame(errors.get(1),x.getCause().getSuppressed()[0]);
+        }
+    }
+
+    /**
+     * Is the exception in listener's onTaskFailed properly forwarded?
+     */
+    public void testListenerOnTaskFailedFailure() throws Exception {
+        final List<Throwable> errors = new ArrayList<>();
+        final Exception[] ex = new Exception[1];
+        try {
+            execute(buildSession("->t1->m", (reactor, id) -> {
+                throw ex[0]=new IOException("Yep");
+            }), new ReactorListener() {
+                    @Override
+                    public void onTaskFailed(Task t, Throwable err, boolean fatal) {
+                        Error ex = new AssertionError("Listener error");
+                        errors.add(ex);
+                        throw ex;
+                    }
+                }, new ReactorListener() {
+                    @Override
+                    public void onTaskFailed(Task t, Throwable err, boolean fatal) {
+                        RuntimeException ex = new NullPointerException("Listener runtime exception");
+                        errors.add(ex);
+                        throw ex;
+                    }
+                }
+            );
+            fail();
+        } catch (ReactorException x) {
+            assertEquals(2, errors.size());
+            assertSame(errors.get(0),x.getCause());
+            assertSame(errors.get(1),x.getCause().getSuppressed()[0]);
+            assertSame(ex[0],x.getCause().getSuppressed()[1]);
+        }
+    }
+
+    /**
+     * Is the exception in listener's onAttained properly forwarded?
+     */
+    public void testListenerOnAttainedFailure() throws Exception {
+        final List<Throwable> errors = new ArrayList<>();
+        try {
+            execute(buildSession("->t1->m", createNoOp()),
+                new ReactorListener() {
+                    @Override
+                    public void onAttained(Milestone milestone) {
+                        Error ex = new AssertionError("Listener error");
+                        errors.add(ex);
+                        throw ex;
+                    }
+                }, new ReactorListener() {
+                    @Override
+                    public void onAttained(Milestone milestone) {
+                        RuntimeException ex = new NullPointerException("Listener runtime exception");
+                        errors.add(ex);
+                        throw ex;
+                    }
+                }
+            );
+            fail();
+        } catch (ReactorException x) {
+            assertEquals(2, errors.size());
+            assertSame(errors.get(0),x.getCause());
+            assertSame(errors.get(1),x.getCause().getSuppressed()[0]);
         }
     }
 
@@ -143,7 +272,7 @@ public class SessionTest extends TestCase {
 
         // one more task added  during execution
         assertEquals(3,s.size());
-        assertEquals("Started t1\nEnded t1\nAttained m1\nStarted t2\nEnded t2\nStarted t3\nEnded t3\n", result);
+        assertEqualsIgnoreNewlineStyle("Started t1\nEnded t1\nAttained m1\nStarted t2\nEnded t2\nStarted t3\nEnded t3\n", result);
     }
 
     /**
@@ -163,7 +292,7 @@ public class SessionTest extends TestCase {
 
         // one more task added  during execution
         assertEquals(4,s.size());
-        assertEquals("Started t1\n" +
+        assertEqualsIgnoreNewlineStyle("Started t1\n" +
                 "Ended t1\n" +
                 "Attained m1\n" +
                 "Started t2\n" +
@@ -180,12 +309,9 @@ public class SessionTest extends TestCase {
      * Milestones that no one attains should be attained by default.
      */
     public void testDanglingMilestone() throws Exception {
-        Reactor s = buildSession("m1->t1->m2",new TestTask() {
-            public void run(Reactor session, String id) throws Exception {
-            }
-        });
+        Reactor s = buildSession("m1->t1->m2", (session, id) -> { });
         String result = execute(s);
-        assertEquals("Attained m1\nStarted t1\nEnded t1\nAttained m2\n",result);
+        assertEqualsIgnoreNewlineStyle("Attained m1\nStarted t1\nEnded t1\nAttained m2\n",result);
     }
 
     /**
@@ -193,17 +319,12 @@ public class SessionTest extends TestCase {
      */
     public void testNonFatalTask() throws Exception {
         TaskGraphBuilder g = new TaskGraphBuilder();
-        Handle h = g.notFatal().add("1st", new Executable() {
-            public void run(Reactor reactor) throws Exception {
-                throw new IllegalArgumentException();   // simulated failure
-            }
+        Handle h = g.notFatal().add("1st", reactor -> {
+            throw new IllegalArgumentException();   // simulated failure
         });
-        g.requires(h).add("2nd",new Executable() {
-            public void run(Reactor reactor) throws Exception {
-            }
-        });
+        g.requires(h).add("2nd", reactor -> { });
         String result = execute(new Reactor(g));
-        assertEquals(
+        assertEqualsIgnoreNewlineStyle(
                 "Started 1st\n" +
                 "Failed 1st with java.lang.IllegalArgumentException\n" +
                 "Attained 1st\n" +
@@ -237,12 +358,21 @@ public class SessionTest extends TestCase {
         };
     }
 
+    /**
+     * Creates {@link TestTask} that does nothing.
+     */
+    private TestTask createNoOp() {
+        return (reactor, id) -> {
+            // do nothing
+        };
+    }
+
     interface TestTask {
         void run(Reactor reactor, String id) throws Exception;
     }
 
     private Reactor buildSession(String spec, final TestTask work) throws Exception {
-        Collection<TaskImpl> tasks = new ArrayList<TaskImpl>();
+        Collection<TaskImpl> tasks = new ArrayList<>();
         for (String node : spec.split(" "))
             tasks.add(new TaskImpl(node,work));
 
@@ -259,13 +389,13 @@ public class SessionTest extends TestCase {
             String[] tokens = id.split("->");
             this.id = tokens[1];
             // tricky handling necessary due to inconsistency in how split works
-            this.requires = adapt(tokens[0].length()==0 ? Collections.<String>emptyList() : Arrays.asList(tokens[0].split(",")));
-            this.attains = adapt(tokens.length<3 ? Collections.<String>emptyList() : Arrays.asList(tokens[2].split(",")));
+            this.requires = adapt(tokens[0].length()==0 ? Collections.emptyList() : Arrays.asList(tokens[0].split(",")));
+            this.attains = adapt(tokens.length<3 ? Collections.emptyList() : Arrays.asList(tokens[2].split(",")));
             this.work = work;
         }
 
         private Collection<Milestone> adapt(List<String> strings) {
-            List<Milestone> r = new ArrayList<Milestone>();
+            List<Milestone> r = new ArrayList<>();
             for (String s : strings)
                 r.add(new MilestoneImpl(s));
             return r;
@@ -318,5 +448,16 @@ public class SessionTest extends TestCase {
         public String toString() {
             return id;
         }
+    }
+
+    private static void assertEqualsIgnoreNewlineStyle(String s1, String s2) {
+        assertEquals(normalizeLineEnds(s1), normalizeLineEnds(s2));
+    }
+
+    private static String normalizeLineEnds(String s) {
+        if (s == null) {
+            return null;
+        }
+        return s.replace("\r\n", "\n").replace('\r', '\n');
     }
 }
