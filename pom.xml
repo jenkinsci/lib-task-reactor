@@ -7,7 +7,7 @@
     <version>1.39</version>
   </parent>
   <artifactId>task-reactor</artifactId>
-  <version>1.5</version>
+  <version>1.6-SNAPSHOT</version>
   <name>Jenkins Task Reactor</name>
 
   <properties>
@@ -53,7 +53,7 @@
     <connection>scm:git:git://github.com/jenkinsci/lib-task-reactor.git</connection>
     <developerConnection>scm:git:git@github.com:jenkinsci/lib-task-reactor.git</developerConnection>
     <url>https://github.com/jenkinsci/lib-task-reactor</url>
-    <tag>task-reactor-1.5</tag>
+    <tag>HEAD</tag>
   </scm>
 
   <!-- TODO: remove when library parent POM enables FindBugs by default -->
