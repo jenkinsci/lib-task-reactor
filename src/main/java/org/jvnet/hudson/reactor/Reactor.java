@@ -48,7 +48,7 @@ public class Reactor implements Iterable<Reactor.Node> {
     /**
      * {@link Node}s created from {@link Task}.
      */
-    private final Set<Node> tasks = new HashSet<Node>();
+    private final Set<Node> tasks = new HashSet<>();
 
     /**
      * Number of tasks pending execution
@@ -63,7 +63,7 @@ public class Reactor implements Iterable<Reactor.Node> {
     /**
      * Milestones as nodes in DAG. Guarded by 'this'.
      */
-    private final Map<Milestone,Node> milestones = new HashMap<Milestone,Node>();
+    private final Map<Milestone,Node> milestones = new HashMap<>();
 
     private Executor executor;
 
@@ -78,7 +78,7 @@ public class Reactor implements Iterable<Reactor.Node> {
         /**
          * All of them have to run before this task can be executed.
          */
-        private final Set<Node> prerequisites = new HashSet<Node>();
+        private final Set<Node> prerequisites = new HashSet<>();
 
         /**
          * What to run
@@ -88,7 +88,7 @@ public class Reactor implements Iterable<Reactor.Node> {
         /**
          * These nodes have this node in {@link #prerequisites}.
          */
-        private final Set<Node> downstream = new HashSet<Node>();
+        private final Set<Node> downstream = new HashSet<>();
 
         private boolean submitted;
         private boolean done;
@@ -205,7 +205,7 @@ public class Reactor implements Iterable<Reactor.Node> {
      * or else the newly added task can start executing before its dependencies are added.
      */
     public synchronized void addAll(Iterable<? extends Task> _tasks) {
-        List<Node> newNodes = new ArrayList<Node>();
+        List<Node> newNodes = new ArrayList<>();
         for (final Task t : _tasks) {
             Node n = new Node(new Runnable() {
                 public void run() {
