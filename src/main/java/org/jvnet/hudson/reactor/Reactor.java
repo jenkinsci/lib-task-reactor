@@ -23,6 +23,8 @@
  */
 package org.jvnet.hudson.reactor;
 
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
@@ -70,6 +72,13 @@ public class Reactor implements Iterable<Reactor.Node> {
     private ReactorListener listener = ReactorListener.NOOP;
 
     private boolean executed = false;
+
+    @CheckForNull
+    private final Milestone defaultPrerequisite;
+    @CheckForNull
+    private final Milestone defaultAttains;
+    @CheckForNull
+    private final Milestone endMilestone;
 
     /**
      * A node in DAG.
@@ -145,13 +154,42 @@ public class Reactor implements Iterable<Reactor.Node> {
         }
     }
 
-
-    public Reactor(Collection<? extends TaskBuilder> builders) throws IOException {
-        for (TaskBuilder b : builders)
-            for (Task t :b.discoverTasks(this))
+    /**
+     * Constructor
+     * @param builders Builder Tasks
+     * @param defaultPrerequisite Default Prerequisite task
+     * @param defaultAttains Default Attains task.
+     *                       This value generally equals to the last milestone.
+     * @throws IOException Cannot add the milestone
+     */
+    public Reactor(Collection<? extends TaskBuilder> builders,
+                   @Nonnull Milestone defaultPrerequisite, @Nonnull Milestone defaultAttains,
+                   @Nonnull Milestone endMilestone) throws IOException {
+        this.defaultPrerequisite = defaultPrerequisite;
+        this.defaultAttains = defaultAttains;
+        if (defaultPrerequisite == endMilestone) {
+            throw new IOException("Default prerequisite should not be an end milestone");
+        }
+        this.endMilestone = endMilestone;
+        for (TaskBuilder b : builders) {
+            for (Task t : b.discoverTasks(this)) {
                 add(t);
+            }
+        }
     }
 
+    /**
+     * @deprecated Use {@link #Reactor(Collection, Milestone, Milestone, Milestone)}
+     */
+    @Deprecated
+    public Reactor(Collection<? extends TaskBuilder> builders) throws IOException {
+        this(builders, null, null, null);
+    }
+
+    /**
+     * @deprecated Use {@link #Reactor(Collection, Milestone, Milestone, Milestone)}
+     */
+    @Deprecated
     public Reactor(TaskBuilder... builders) throws IOException {
         this(Arrays.asList(builders));
     }
@@ -234,10 +272,30 @@ public class Reactor implements Iterable<Reactor.Node> {
                     return "Task:"+t.getDisplayName();
                 }
             });
-            for (Milestone req : t.requires())
-                n.addPrerequisite(milestone(req));
-            for (Milestone a : t.attains())
-                milestone(a).addPrerequisite(n);
+
+            // Node requirements
+            Collection<? extends Milestone>  requirements = t.requires();
+            if (defaultPrerequisite != null && requirements.isEmpty()) {
+                n.addPrerequisite(milestone(defaultPrerequisite));
+            } else {
+                for (Milestone req : requirements) {
+                    n.addPrerequisite(milestone(req));
+                }
+            }
+
+            // Node prerequisites
+            Collection<? extends Milestone>  attains = t.attains();
+            if (defaultAttains != null && attains.isEmpty()) {
+                milestone(defaultAttains).addPrerequisite(n);
+            } else {
+                for (Milestone a : t.attains()) {
+                    if (a == endMilestone && endMilestone != null) {
+                        throw new IllegalStateException(String.format("Node %s defines the end milestone %s as a prerequisite", n, endMilestone));
+                    }
+                    milestone(a).addPrerequisite(n);
+                }
+            }
+
             tasks.add(n);
             newNodes.add(n);
         }
