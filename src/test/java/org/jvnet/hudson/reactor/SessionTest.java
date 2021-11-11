@@ -24,7 +24,7 @@
 package org.jvnet.hudson.reactor;
 
 import junit.framework.TestCase;
-import org.objectweb.carol.cmi.test.TeeWriter;
+import org.apache.commons.io.output.TeeWriter;
 import org.jvnet.hudson.reactor.TaskGraphBuilder.Handle;
 
 import javax.naming.NamingException;
