@@ -23,6 +23,8 @@
  */
 package org.jvnet.hudson.reactor;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executor;
 import java.util.Collection;
@@ -82,6 +84,7 @@ public interface ReactorListener {
     public static class Aggregator implements ReactorListener {
         private final Collection<ReactorListener> listeners;
 
+        @SuppressFBWarnings("EI_EXPOSE_REP2")
         public Aggregator(Collection<ReactorListener> listeners) {
             this.listeners = listeners;
         }

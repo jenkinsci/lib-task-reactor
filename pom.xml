@@ -4,7 +4,7 @@
   <parent>
     <groupId>org.jenkins-ci</groupId>
     <artifactId>jenkins</artifactId>
-    <version>1.39</version>
+    <version>1.67</version>
   </parent>
   <artifactId>task-reactor</artifactId>
   <version>1.6-SNAPSHOT</version>
@@ -55,30 +55,5 @@
     <url>https://github.com/jenkinsci/lib-task-reactor</url>
     <tag>HEAD</tag>
   </scm>
-
-  <!-- TODO: remove when library parent POM enables FindBugs by default -->
-  <build>
-    <plugins>
-      <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>findbugs-maven-plugin</artifactId>
-        <configuration>
-          <xmlOutput>true</xmlOutput>
-          <effort>Max</effort>
-          <threshold>Low</threshold><!-- we want to find serialization related problems -->
-          <!-- TODO: issues need to be fixed first-->
-          <failOnError>false</failOnError>
-        </configuration>
-        <executions>
-          <execution>
-            <phase>verify</phase>
-            <goals>
-              <goal>check</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
-    </plugins>
-  </build>
 
 </project>
