@@ -23,6 +23,8 @@
  */
 package org.jvnet.hudson.reactor;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
@@ -44,6 +46,7 @@ import java.util.concurrent.Executor;
  *
  * @author Kohsuke Kawaguchi
  */
+@SuppressFBWarnings("IS2_INCONSISTENT_SYNC")
 public class Reactor implements Iterable<Reactor.Node> {
     /**
      * {@link Node}s created from {@link Task}.
