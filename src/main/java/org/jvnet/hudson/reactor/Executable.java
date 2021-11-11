@@ -41,6 +41,7 @@ public interface Executable {
      * No-op implementation.
      */
     public static final Executable NOOP = new Executable() {
+        @Override
         public void run(Reactor reactor) throws Exception {
         }
 

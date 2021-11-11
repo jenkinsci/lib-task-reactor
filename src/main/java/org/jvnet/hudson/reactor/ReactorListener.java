@@ -89,18 +89,22 @@ public interface ReactorListener {
             this.listeners = listeners;
         }
 
+        @Override
         public void onTaskStarted(Task t) {
             run(l -> l.onTaskStarted(t));
         }
 
+        @Override
         public void onTaskCompleted(Task t) {
             run(l -> l.onTaskCompleted(t));
         }
 
+        @Override
         public void onTaskFailed(Task t, Throwable err, boolean fatal) {
             run(l -> l.onTaskFailed(t,err,fatal));
         }
 
+        @Override
         public void onAttained(Milestone milestone) {
             run(l -> l.onAttained(milestone));
         }

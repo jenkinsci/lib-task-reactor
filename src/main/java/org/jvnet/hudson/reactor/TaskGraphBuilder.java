@@ -44,6 +44,7 @@ public class TaskGraphBuilder extends TaskBuilder {
     private boolean fatalForNextTask = true;
     private Handle last;
 
+    @Override
     public Iterable<? extends Task> discoverTasks(Reactor reactor) throws IOException {
         return Collections.unmodifiableSet(tasks);
     }
@@ -149,22 +150,27 @@ public class TaskGraphBuilder extends TaskBuilder {
             attains.add(this);
         }
 
+        @Override
         public Collection<Milestone> requires() {
             return requires;
         }
 
+        @Override
         public Collection<Milestone> attains() {
             return attains;
         }
 
+        @Override
         public String getDisplayName() {
             return displayName;
         }
 
+        @Override
         public boolean failureIsFatal() {
             return fatal;
         }
 
+        @Override
         public void run(Reactor reactor) throws Exception {
             executable.run(reactor);
         }
@@ -177,37 +183,44 @@ public class TaskGraphBuilder extends TaskBuilder {
     //
     // mutators
     //
+        @Override
         public Handle requires(Milestone m) {
             if (m!=null)
                 requires.add(m);
             return this;
         }
 
+        @Override
         public Handle requires(Milestone... ms) {
             return requires(Arrays.asList(ms));
         }
 
+        @Override
         public Handle requires(Collection<? extends Milestone> ms) {
             for (Milestone m : ms)
                 requires(m);
             return this;
         }
 
+        @Override
         public Handle attains(Milestone m) {
             attains.add(m);
             return this;
         }
 
+        @Override
         public Handle attains(Collection<? extends Milestone> ms) {
             for (Milestone m : ms)
                 attains(m);
             return this;
         }
 
+        @Override
         public Task asTask() {
             return this;
         }
 
+        @Override
         public Task notFatal() {
             fatal = false;
             return this;
