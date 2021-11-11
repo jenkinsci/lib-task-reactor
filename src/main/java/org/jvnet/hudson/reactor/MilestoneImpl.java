@@ -45,14 +45,17 @@ public class MilestoneImpl implements Milestone {
         this(null);
     }
 
+    @Override
     public String toString() {
         return id;
     }
 
+    @Override
     public int hashCode() {
         return id!=null ? id.hashCode() : super.hashCode();
     }
 
+    @Override
     public boolean equals(Object obj) {
         if (this==obj)  return true;
         if (obj instanceof MilestoneImpl) {

@@ -47,6 +47,7 @@ public abstract class TaskBuilder {
      */
     public static TaskBuilder fromTasks(final Collection<? extends Task> tasks) {
         return new TaskBuilder() {
+            @Override
             public Iterable<? extends Task> discoverTasks(Reactor reactor) throws IOException {
                 return tasks;
             }
@@ -55,6 +56,7 @@ public abstract class TaskBuilder {
 
     public static TaskBuilder union(final Iterable<? extends TaskBuilder> builders) {
         return new TaskBuilder() {
+            @Override
             public Iterable<? extends Task> discoverTasks(Reactor reactor) throws IOException {
                 List<Task> r = new ArrayList<>();
                 for (TaskBuilder b : builders)

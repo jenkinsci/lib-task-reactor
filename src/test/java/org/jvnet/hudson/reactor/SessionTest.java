@@ -106,6 +106,7 @@ public class SessionTest extends TestCase {
     public void testConcurrentExecution2() throws Exception {
         execute(buildSession("->t1->m m->t2-> m->t3->", new TestTask() {
             TestTask latch = createLatch(2);
+            @Override
             public void run(Reactor reactor, String id) throws Exception {
                 if (id.equals("t1"))    return;
                 latch.run(reactor, id);
@@ -260,6 +261,7 @@ public class SessionTest extends TestCase {
      */
     public void testDynamicTask() throws Exception {
         final Reactor s = buildSession("->t1->m1 m1->t2->", new TestTask() {
+            @Override
             public void run(Reactor session, String id) throws Exception {
                 if (id.equals("t2")) {
                     // should start running immediately because it's prerequisite is already met.
@@ -280,6 +282,7 @@ public class SessionTest extends TestCase {
      */
     public void testDynamicTask2() throws Exception {
         final Reactor s = buildSession("->t1->m1 m1->t2->m2 m2->t3->m3", new TestTask() {
+            @Override
             public void run(Reactor session, String id) throws Exception {
                 if (id.equals("t2")) {
                     // should block until m3 is attained
@@ -342,6 +345,7 @@ public class SessionTest extends TestCase {
             int pending = 0;
             boolean go = false;
 
+            @Override
             public void run(Reactor reactor, String id) throws InterruptedException {
                 synchronized (lock) {
                     pending++;
@@ -401,22 +405,27 @@ public class SessionTest extends TestCase {
             return r;
         }
 
+        @Override
         public Collection<Milestone> requires() {
             return requires;
         }
 
+        @Override
         public Collection<Milestone> attains() {
             return attains;
         }
 
+        @Override
         public String getDisplayName() {
             return id;
         }
 
+        @Override
         public void run(Reactor reactor) throws Exception {
             work.run(reactor, id);
         }
 
+        @Override
         public boolean failureIsFatal() {
             return true;
         }
