@@ -383,7 +383,7 @@ public class SessionTest extends TestCase {
         return new Reactor(TaskBuilder.fromTasks(tasks));
     }
 
-    class TaskImpl implements Task {
+    static class TaskImpl implements Task {
         final String id;
         final Collection<Milestone> requires;
         final Collection<Milestone> attains;
