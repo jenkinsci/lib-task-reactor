@@ -262,7 +262,7 @@ public class SessionTest extends TestCase {
     public void testDynamicTask() throws Exception {
         final Reactor s = buildSession("->t1->m1 m1->t2->", new TestTask() {
             @Override
-            public void run(Reactor session, String id) throws Exception {
+            public void run(Reactor session, String id) {
                 if (id.equals("t2")) {
                     // should start running immediately because it's prerequisite is already met.
                     session.add(new TaskImpl("m1->t3->",this));
@@ -283,7 +283,7 @@ public class SessionTest extends TestCase {
     public void testDynamicTask2() throws Exception {
         final Reactor s = buildSession("->t1->m1 m1->t2->m2 m2->t3->m3", new TestTask() {
             @Override
-            public void run(Reactor session, String id) throws Exception {
+            public void run(Reactor session, String id) {
                 if (id.equals("t2")) {
                     // should block until m3 is attained
                     session.add(new TaskImpl("m3->t4->",this));
@@ -383,7 +383,7 @@ public class SessionTest extends TestCase {
         return new Reactor(TaskBuilder.fromTasks(tasks));
     }
 
-    class TaskImpl implements Task {
+    static class TaskImpl implements Task {
         final String id;
         final Collection<Milestone> requires;
         final Collection<Milestone> attains;
