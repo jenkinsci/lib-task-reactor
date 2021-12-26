@@ -27,7 +27,6 @@ import junit.framework.TestCase;
 import org.apache.commons.io.output.TeeWriter;
 import org.jvnet.hudson.reactor.TaskGraphBuilder.Handle;
 
-import javax.naming.NamingException;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
@@ -121,7 +120,7 @@ public class SessionTest extends TestCase {
         final Exception[] e = new Exception[1];
         try {
             execute(buildSession("->t1->", (reactor, id) -> {
-                throw e[0]=new NamingException("Yep");
+                throw e[0]=new IOException("Yep");
             }));
             fail();
         } catch (ReactorException x) {
