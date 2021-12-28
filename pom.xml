@@ -12,19 +12,26 @@
   <name>Jenkins Task Reactor</name>
   <url>https://github.com/jenkinsci/lib-${project.artifactId}</url>
 
+  <licenses>
+    <license>
+      <name>MIT License</name>
+      <url>https://opensource.org/licenses/MIT</url>
+    </license>
+  </licenses>
+
+  <scm>
+    <connection>scm:git:git://github.com/${gitHubRepo}.git</connection>
+    <developerConnection>scm:git:git@github.com:${gitHubRepo}.git</developerConnection>
+    <tag>${scmTag}</tag>
+    <url>https://github.com/${gitHubRepo}</url>
+  </scm>
+
   <properties>
     <revision>1.8</revision>
     <changelist>-SNAPSHOT</changelist>
     <java.level>8</java.level>
     <gitHubRepo>jenkinsci/lib-${project.artifactId}</gitHubRepo>
   </properties>
-
-  <repositories>
-    <repository>
-      <id>repo.jenkins-ci.org</id>
-      <url>https://repo.jenkins-ci.org/public/</url>
-    </repository>
-  </repositories>
 
   <dependencies>
     <dependency>
@@ -51,18 +58,10 @@
     </dependency>
   </dependencies>
 
-  <licenses>
-    <license>
-      <name>MIT License</name>
-      <url>https://opensource.org/licenses/MIT</url>
-    </license>
-  </licenses>
-
-  <scm>
-    <connection>scm:git:git://github.com/${gitHubRepo}.git</connection>
-    <developerConnection>scm:git:git@github.com:${gitHubRepo}.git</developerConnection>
-    <url>https://github.com/${gitHubRepo}</url>
-    <tag>${scmTag}</tag>
-  </scm>
-
+  <repositories>
+    <repository>
+      <id>repo.jenkins-ci.org</id>
+      <url>https://repo.jenkins-ci.org/public/</url>
+    </repository>
+  </repositories>
 </project>
