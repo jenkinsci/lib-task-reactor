@@ -11,4 +11,4 @@ See usages in [jenkins.model.Jenkins](https://github.com/jenkinsci/jenkins/blob/
 ## Documentation
 
 * [Changelog](CHANGELOG.md)
-* Javadoc: Coming soon
+* [Javadoc](https://javadoc.jenkins.io/component/task-reactor/)
