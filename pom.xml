@@ -29,7 +29,6 @@
   <properties>
     <revision>1.8</revision>
     <changelist>-SNAPSHOT</changelist>
-    <java.level>8</java.level>
     <gitHubRepo>jenkinsci/lib-${project.artifactId}</gitHubRepo>
   </properties>
 
