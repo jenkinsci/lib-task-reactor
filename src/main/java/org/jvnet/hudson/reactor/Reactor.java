@@ -301,6 +301,7 @@ public class Reactor implements Iterable<Reactor.Node> {
     /**
      * Can be overridden by the subtype to enclose the entire execution of the task.
      */
+    @SuppressFBWarnings(value = "THROWS_METHOD_THROWS_CLAUSE_BASIC_EXCEPTION", justification = "TODO needs triage")
     protected void runTask(Task t) throws Exception {
         t.run(this);
     }
