@@ -43,7 +43,7 @@ public interface Executable {
     /**
      * No-op implementation.
      */
-    public static final Executable NOOP = new Executable() {
+    Executable NOOP = new Executable() {
         @Override
         @SuppressFBWarnings(value = "THROWS_METHOD_THROWS_CLAUSE_BASIC_EXCEPTION", justification = "TODO needs triage")
         public void run(Reactor reactor) throws Exception {

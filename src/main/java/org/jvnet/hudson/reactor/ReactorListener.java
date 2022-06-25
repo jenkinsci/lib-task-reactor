@@ -73,14 +73,14 @@ public interface ReactorListener {
         // Do nothing by default
     }
 
-    public static final ReactorListener NOOP = new ReactorListener() {
+    ReactorListener NOOP = new ReactorListener() {
         // Default implementation for all handlers
     };
 
     /**
      * Bundles multiple listeners into one.
      */
-    public static class Aggregator implements ReactorListener {
+    class Aggregator implements ReactorListener {
         private final Collection<ReactorListener> listeners;
 
         @SuppressFBWarnings("EI_EXPOSE_REP2")
