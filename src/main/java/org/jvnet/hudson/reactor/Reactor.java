@@ -35,7 +35,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.List;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.concurrent.Executor;
 
 /**
@@ -201,7 +200,7 @@ public class Reactor implements Iterable<Reactor.Node> {
      * This can be even invoked during execution.
      */
     public void add(Task t) {
-        addAll(Collections.singleton(t));
+        addAll(Set.of(t));
     }
 
     /**
