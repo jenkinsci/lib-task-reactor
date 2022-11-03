@@ -83,7 +83,6 @@ public interface ReactorListener {
     class Aggregator implements ReactorListener {
         private final Collection<ReactorListener> listeners;
 
-        @SuppressFBWarnings("EI_EXPOSE_REP2")
         public Aggregator(Collection<ReactorListener> listeners) {
             this.listeners = listeners;
         }
