@@ -23,8 +23,6 @@
  */
 package org.jvnet.hudson.reactor;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
 /**
  * Represents code that can be executed.
  * 
@@ -37,7 +35,6 @@ public interface Executable {
      * @param reactor Reactor to be executed
      * @throws Exception Execution error
      */
-    @SuppressFBWarnings(value = "THROWS_METHOD_THROWS_CLAUSE_BASIC_EXCEPTION", justification = "TODO needs triage")
     void run(Reactor reactor) throws Exception;
 
     /**
@@ -45,7 +42,6 @@ public interface Executable {
      */
     Executable NOOP = new Executable() {
         @Override
-        @SuppressFBWarnings(value = "THROWS_METHOD_THROWS_CLAUSE_BASIC_EXCEPTION", justification = "TODO needs triage")
         public void run(Reactor reactor) throws Exception {
         }
 

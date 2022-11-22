@@ -23,7 +23,6 @@
  */
 package org.jvnet.hudson.reactor;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.util.Set;
 import java.util.HashSet;
@@ -172,7 +171,6 @@ public class TaskGraphBuilder extends TaskBuilder {
         }
 
         @Override
-        @SuppressFBWarnings(value = "THROWS_METHOD_THROWS_CLAUSE_BASIC_EXCEPTION", justification = "TODO needs triage")
         public void run(Reactor reactor) throws Exception {
             executable.run(reactor);
         }
