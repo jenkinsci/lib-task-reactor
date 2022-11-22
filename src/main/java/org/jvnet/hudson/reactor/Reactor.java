@@ -45,7 +45,7 @@ import java.util.concurrent.Executor;
  *
  * @author Kohsuke Kawaguchi
  */
-@SuppressFBWarnings("IS2_INCONSISTENT_SYNC")
+@SuppressFBWarnings(value = "IS2_INCONSISTENT_SYNC", justification = "TODO needs triage")
 public class Reactor implements Iterable<Reactor.Node> {
     /**
      * {@link Node}s created from {@link Task}.
@@ -300,7 +300,6 @@ public class Reactor implements Iterable<Reactor.Node> {
     /**
      * Can be overridden by the subtype to enclose the entire execution of the task.
      */
-    @SuppressFBWarnings(value = "THROWS_METHOD_THROWS_CLAUSE_BASIC_EXCEPTION", justification = "TODO needs triage")
     protected void runTask(Task t) throws Exception {
         t.run(this);
     }

@@ -23,8 +23,6 @@
  */
 package org.jvnet.hudson.reactor;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
 import java.util.concurrent.Executor;
 import java.util.Collection;
 
@@ -107,7 +105,6 @@ public interface ReactorListener {
             run(l -> l.onAttained(milestone));
         }
 
-        @SuppressFBWarnings(value = "THROWS_METHOD_THROWS_RUNTIMEEXCEPTION", justification = "TODO needs triage")
         private void run(ListenerAction action) {
             Throwable ex = null;
             for (ReactorListener listener : listeners) {
