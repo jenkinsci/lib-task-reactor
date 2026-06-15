@@ -115,6 +115,7 @@ public class Reactor implements Iterable<Reactor.Node> {
         }
 
         @Override
+        @SuppressFBWarnings(value = "USO_UNSAFE_OBJECT_SYNCHRONIZATION", justification = "Irrelevant")
         public void run() {
             try {
                 task.run();
